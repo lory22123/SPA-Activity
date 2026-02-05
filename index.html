@@ -11,7 +11,7 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase SDKs -->
+    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -22,13 +22,13 @@
         body {
             height: var(--app-height);
             margin: 0;
-            background-color: #b91c1c;
+            background-color: #b91c1c; /* bg-red-700 */
             overflow: hidden;
             touch-action: manipulation;
         }
         @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-12px) rotate(2deg); }
+            50% { transform: translateY(-12px) rotate(1.5deg); }
         }
         .animate-float { animation: float 5s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -57,7 +57,7 @@
             measurementId: "G-7NVTFPQGR0"
         };
 
-        const appId = 'spa-activity-stable-v10'; 
+        const appId = 'spa-activity-final-v11'; 
 
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -65,6 +65,7 @@
         const auth = firebase.auth();
         const db = firebase.firestore();
 
+        // --- 安全圖標組件 ---
         const Icon = ({ name, className = "" }) => {
             const containerRef = useRef(null);
             useEffect(() => {
@@ -146,6 +147,7 @@
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
 
+            // 1. 身分驗證
             useEffect(() => {
                 const unsubscribe = auth.onAuthStateChanged(u => {
                     if (u) setUser(u); else auth.signInAnonymously();
@@ -153,6 +155,7 @@
                 return () => unsubscribe();
             }, []);
 
+            // 2. 資料同步
             useEffect(() => {
                 if (!user) return;
                 const unsubPlayers = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players')
@@ -165,6 +168,7 @@
                 return () => { unsubPlayers(); unsubState(); };
             }, [user, isAdmin]);
 
+            // 3. 5秒 倒數邏輯
             useEffect(() => {
                 const isRecent = gameState.countdownStartTime > (Date.now() - 60000);
                 if (gameState.countdownStartTime > 0 && isRecent && gameStep === 'greetings') {
@@ -177,6 +181,7 @@
                 }
             }, [gameState.countdownStartTime, gameStep]);
 
+            // 排名邏輯：分數降序 (b-a)，同分則時間升序 (a-b)
             const sortedPlayers = useMemo(() => {
                 return [...players].sort((a, b) => (b.score - a.score) || (a.totalTime - b.totalTime));
             }, [players]);
@@ -208,11 +213,21 @@
                 }
             };
 
+            // 重置本地狀態返回登入頁
+            const resetLocalToLogin = () => {
+                setGameStep('register');
+                setScore(0);
+                setTotalTime(0);
+                setCurrentQuestionIndex(0);
+                setSelectedOption(null);
+            };
+
             return (
-                <div className="flex flex-col h-full bg-red-700 max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white">
+                <div className="flex flex-col h-full bg-red-700 max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
+                    {/* Header */}
                     <div className="p-4 flex justify-between items-center bg-red-800/95 border-b border-yellow-600/30 shrink-0 z-20 shadow-md">
                         <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter"><span className="text-xl animate-bounce">🐎</span> 2026年達豐 & 明定 春酒活動</h1>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-yellow-600/50 px-3 py-1 rounded-full border border-yellow-400/50 font-bold uppercase">{isAdmin ? 'User' : 'Admin'}</button>
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-yellow-600/50 px-3 py-1 rounded-full border border-yellow-400/50 font-black uppercase">{isAdmin ? 'User' : 'Admin'}</button>
                     </div>
 
                     <div className="flex-grow flex flex-col overflow-y-auto no-scrollbar relative p-4">
@@ -270,9 +285,12 @@
                                     <div className="flex-grow flex flex-col h-full relative">
                                         <WordCloud words={players} isBackground={true} />
                                         <div className="flex-grow flex flex-col space-y-6 z-10">
-                                            <div className="flex justify-between items-center bg-red-800/90 p-3 rounded-xl border border-yellow-600/30 text-xs font-black shrink-0 shadow-lg mt-2">
+                                            <div className="flex justify-between items-center bg-red-800/95 p-4 rounded-xl border border-yellow-600/30 text-[10px] font-black shrink-0 shadow-lg mt-2">
                                                 <span className="text-yellow-400">題次 {currentQuestionIndex + 1} / 10</span>
-                                                <span className="bg-yellow-500 text-red-900 px-3 py-0.5 rounded-full shadow-inner font-black">得分：{score}</span>
+                                                <div className="flex gap-4">
+                                                    <span className="text-orange-400 animate-pulse">⏱ {Math.floor(totalTime / 1000)}s</span>
+                                                    <span className="bg-yellow-500 text-red-900 px-3 py-0.5 rounded-full shadow-inner">得分：{score}</span>
+                                                </div>
                                             </div>
                                             <div className="quiz-card text-red-900 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-4 border-gray-300">
                                                 <p className="text-2xl font-black italic leading-relaxed">{QUESTIONS[currentQuestionIndex].q}</p>
@@ -306,9 +324,12 @@
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
                                                         <div className="w-14 h-14 rounded-full bg-red-700 text-white flex items-center justify-center font-black text-2xl border-2 border-white shadow-lg">{myRank}</div>
-                                                        <div><div className="font-black text-2xl tracking-tighter">{me.name} <span className="text-[10px] bg-red-700 text-white px-2 py-0.5 rounded-full uppercase ml-1 font-black">You</span></div><div className="text-sm font-bold italic opacity-80">"{me.greeting}"</div></div>
+                                                        <div><div className="font-black text-2xl tracking-tighter leading-tight">{me.name} <span className="text-[10px] bg-red-700 text-white px-2 py-0.5 rounded-full uppercase ml-1 font-black">You</span></div><div className="text-sm font-bold italic opacity-80 mt-1">"{me.greeting}"</div></div>
                                                     </div>
-                                                    <div className="text-right"><div className="text-3xl font-black">{me.score}</div><div className="text-[10px] font-black opacity-50">Points</div></div>
+                                                    <div className="text-right">
+                                                        <div className="text-3xl font-black">{me.score}</div>
+                                                        <div className="text-[10px] uppercase font-black opacity-50 tracking-widest">Points / {Math.floor(me.totalTime/1000)}s</div>
+                                                    </div>
                                                 </div>
                                                 <div className="mt-4 pt-3 border-t border-red-700/20 text-center bg-red-700 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-xs leading-tight italic">
                                                     {me.prize ? `🎉 恭喜獲獎：${me.prize}` : "好運奔騰！請稍候片刻，主持人將依名次為列榜英雄撥動轉盤，轉出您的年度強運獎項。"}
@@ -332,6 +353,10 @@
                                                 );
                                             }) : <div className="py-20 text-center opacity-30 italic text-yellow-50">成績同步載入中...</div>}
                                         </div>
+                                        {/* 新增：返回登入頁按鈕 */}
+                                        <button onClick={resetLocalToLogin} className="w-full py-4 bg-red-900/50 border border-yellow-600/30 rounded-2xl text-xs font-black tracking-widest text-yellow-400/80 active:bg-yellow-600 active:text-white transition-all shadow-lg flex items-center justify-center gap-2 mb-2">
+                                            <Icon name="arrow-left" className="w-3 h-3" /> 返回註冊頁 (重新測試)
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -376,7 +401,6 @@
                 }, 3500);
             };
 
-            // SVG 轉盤扇形路徑計算
             const getWedgePath = (index, total) => {
                 const angle = 360 / total;
                 const startAngle = index * angle;
@@ -392,26 +416,24 @@
                 <div className="flex flex-col h-full animate-in fade-in no-scrollbar overflow-y-auto pb-32">
                     <div className="bg-yellow-500 p-6 rounded-3xl text-red-900 text-center shadow-xl shrink-0 flex justify-between items-center mb-6">
                         <span className="font-black text-2xl tracking-tighter">iPad 控管中心</span>
-                        <button onClick={handleResetGame} className="bg-red-700 text-white px-3 py-1 rounded-xl text-xs font-bold shadow-lg">🛑 重設全場</button>
+                        <button onClick={handleResetGame} className="bg-red-700 text-white px-3 py-1 rounded-xl text-[10px] font-black shadow-lg">🛑 重設全場</button>
                     </div>
 
                     <div className="bg-red-800 p-6 rounded-3xl border-2 border-yellow-600/30 shadow-lg text-center space-y-2 shrink-0 mb-6">
-                        <div className="text-3xl font-black text-white">{players.length} / 9 位英雄登錄</div>
+                        <div className="text-3xl font-black text-white">{players.length} / 9 位同仁登錄</div>
                         <button onClick={startCountdown} disabled={gameState.countdownStartTime > 0} className={`w-full py-5 rounded-2xl font-black text-2xl shadow-xl transition-all border-b-4 ${gameState.countdownStartTime > 0 ? 'bg-gray-600' : 'bg-yellow-500 text-red-900 border-yellow-700 active:translate-y-1'}`}>{gameState.countdownStartTime > 0 ? '✅ 倒數訊號已發送' : '🔥 啟動 5秒 統一倒數'}</button>
                     </div>
 
                     <div className="flex flex-col items-center bg-red-900/40 p-6 rounded-3xl border border-yellow-600/20 shadow-inner shrink-0 mb-6 relative">
                         <div className="relative w-80 h-80 mb-8 shrink-0 flex items-center justify-center">
                             <div className="absolute inset-0 bg-yellow-400/10 rounded-full blur-3xl animate-pulse"></div>
-                            {/* --- SVG 轉盤引擎 --- */}
                             <svg className="w-full h-full drop-shadow-2xl transition-transform duration-[3500ms] ease-out" style={{ transform: `rotate(${rot}deg)`, width: '300px', height: '300px' }} viewBox="0 0 300 300">
                                 {prizesPool.map((p, i) => {
-                                    const colors = ['#ef4444', '#b91c1c', '#f59e0b', '#ea580c']; // 四色切分
+                                    const colors = ['#ef4444', '#b91c1c', '#f59e0b', '#ea580c']; 
                                     const angle = 360 / prizesPool.length;
                                     const midAngle = (i * angle) + (angle / 2) - 90;
-                                    const textX = 150 + 90 * Math.cos(midAngle * Math.PI / 180);
-                                    const textY = 150 + 90 * Math.sin(midAngle * Math.PI / 180);
-
+                                    const textX = 150 + 95 * Math.cos(midAngle * Math.PI / 180);
+                                    const textY = 150 + 95 * Math.sin(midAngle * Math.PI / 180);
                                     return (
                                         <g key={i}>
                                             <path d={getWedgePath(i, prizesPool.length)} fill={colors[i % colors.length]} stroke="#fff" strokeWidth="1" />
@@ -423,16 +445,14 @@
                                 })}
                                 {prizesPool.length === 0 && <circle cx="150" cy="150" r="148" fill="#7f1d1d" />}
                             </svg>
-                            {/* 指針 */}
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-5 w-12 h-12 bg-yellow-400 z-20 shadow-2xl flex items-center justify-center" style={{ clipPath: 'polygon(50% 100%, 0% 0%, 100% 0%)' }}></div>
                         </div>
-
                         <div className="w-full space-y-4 px-2 pb-6">
                             <select className="w-full p-4 bg-red-900 border-2 border-yellow-500 rounded-2xl text-lg font-black text-white outline-none shadow-xl appearance-none" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
                                 <option value="">-- 依排名選擇得獎者 --</option>
-                                {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
+                                {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                             </select>
-                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-2xl font-black text-2xl shadow-xl transition-all border-b-4 ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600' : 'bg-yellow-500 text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '🐎 命運旋轉中...' : prizesPool.length === 0 ? '獎項已全數抽完' : '🎉 撥動開獎'}</button>
+                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-2xl font-black text-2xl shadow-xl transition-all border-b-4 ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800' : 'bg-yellow-500 text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '🐎 命運旋轉中...' : prizesPool.length === 0 ? '獎項已全數抽完' : '🎉 撥動開獎'}</button>
                         </div>
                     </div>
                 </div>

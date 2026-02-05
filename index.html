@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026年達豐 & 明定 春酒活動</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel for JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root { --app-height: 100dvh; }
+        body {
+            height: var(--app-height);
+            margin: 0;
+            background-color: #b91c1c; /* bg-red-700 */
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-12px) rotate(2deg); }
+        }
+        .animate-float { animation: float 5s ease-in-out infinite; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .text-shadow-lg { text-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+        /* 強化題目卡片的對比度與模糊背景 */
+        .quiz-card {
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+        }
+    </style>
+</head>
+<body class="text-white font-sans selection:bg-yellow-400">
+    <div id="root" class="h-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // --- Firebase 配置 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuhIpxtvxVux4JhMKvF89JTvs7-MiKK6Q",
+            authDomain: "spa-activity.firebaseapp.com",
+            projectId: "spa-activity",
+            storageBucket: "spa-activity.firebasestorage.app",
+            messagingSenderId: "8554093402",
+            appId: "1:8554093402:web:f21469855b0f24eda4f163",
+            measurementId: "G-7NVTFPQGR0"
+        };
+
+        const appId = 'spa-activity-v2-bgfix'; 
+
+        // 初始化 Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // --- 安全圖標組件 ---
+        const Icon = ({ name, className = "" }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (containerRef.current && typeof lucide !== 'undefined') {
+                    containerRef.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+                    lucide.createIcons({ root: containerRef.current });
+                }
+            }, [name, className]);
+            return <span ref={containerRef} className="inline-flex items-center justify-center shrink-0"></span>;
+        };
+
+        // --- 遊戲資料與題目 ---
+        const QUESTIONS = [
+            { q: "2026 年是天干地支中的什麼年？", a: ["甲辰", "辛丑", "癸巳", "丙午"], correct: 3 },
+            { q: "成語「馬到成功」通常用來祝賀什麼？", a: ["身體健康", "事情順利圓滿", "早生貴子", "中大獎"], correct: 1 },
+            { q: "春節傳統中，初幾是「開工日」？", a: ["初一", "初三", "初五", "初七"], correct: 2 },
+            { q: "下列哪一個不是過年常吃的吉祥食物？", a: ["長年菜", "發糕", "西瓜", "水餃"], correct: 2 },
+            { q: "形容人精神抖擻、意氣風發的成語是？", a: ["老馬識途", "龍馬精神", "指鹿為馬", "馬首是瞻"], correct: 1 },
+            { q: "紅包通常又被稱為？", a: ["壓歲錢", "過年錢", "喜酒錢", "長壽錢"], correct: 0 },
+            { q: "倒貼「福」字代表什麼意思？", a: ["福氣沒了", "福氣到", "福氣多", "福氣滿"], correct: 1 },
+            { q: "除夕夜全家人聚在一起吃的飯叫？", a: ["早齋", "圍爐", "滿漢全席", "謝師宴"], correct: 1 },
+            { q: "哪種水果象徵「大吉大利」？", a: ["蘋果", "橘子", "香蕉", "西瓜"], correct: 1 },
+            { q: "本次活動的全稱是？", a: ["2026年達豐 & 明定 春酒活動", "2026 達豐春節晚會", "明定馬到成功大會", "明定與達豐 聚餐"], correct: 0 }
+        ];
+
+        const SPONSORS = [
+            { name: "茂碩通運股份有限公司", prize: "現金 5,000元" },
+            { name: "宇宙聯運企業有限公司", prize: "現金 3,000元" },
+            { name: "獅威航空貨運承攬股份有限公司", prize: "全聯禮券 2,000元" },
+            { name: "信全運通有限公司", prize: "全聯禮券 1,000元" }
+        ];
+
+        const INITIAL_PRIZES = ["8888元", "6666元", "3600元", "2000元", "1200元", "600元", "馬年金幣", "加碼獎", "驚喜禮包"];
+
+        // --- 祝賀牆文字雲 (修正背景透明度與顯示邏輯) ---
+        const WordCloud = ({ words, isBackground = false }) => {
+            const slots = [
+                { t: 10, l: 15, rot: -4 }, { t: 25, l: 55, rot: 6 }, { t: 40, l: 10, rot: -8 },
+                { t: 55, l: 65, rot: 4 }, { t: 65, l: 15, rot: 10 }, { t: 78, l: 50, rot: -4 },
+                { t: 88, l: 20, rot: 8 }, { t: 45, l: 75, rot: -10 }, { t: 5, l: 45, rot: 5 }
+            ];
+
+            return (
+                <div className={`transition-all duration-1000 ${isBackground ? 'absolute inset-0 z-0 opacity-40 pointer-events-none' : 'relative w-full flex-grow min-h-[350px] bg-red-900/40 rounded-3xl border-2 border-yellow-500/20 shadow-inner overflow-hidden flex flex-col items-center justify-center'}`}>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-[150px]">🐎</div>
+                    {words.length > 0 ? (
+                        words.slice(0, 9).map((w, idx) => {
+                            const slot = slots[idx % slots.length];
+                            const colors = ['text-yellow-400', 'text-white', 'text-orange-200', 'text-yellow-100'];
+                            return (
+                                <div key={w.id || idx} className={`absolute animate-float font-black text-center drop-shadow-xl transition-all duration-1000`}
+                                    style={{ 
+                                        top: `${slot.t}%`, 
+                                        left: `${slot.l}%`, 
+                                        transform: `rotate(${slot.rot}deg)`, 
+                                        color: colors[idx % colors.length], 
+                                        fontSize: isBackground ? `${Math.max(18, 36 - (w.greeting || '').length * 2)}px` : `${Math.max(22, 44 - (w.greeting || '').length * 2)}px`
+                                    }}>
+                                    <div>{w.greeting}</div>
+                                    <div className="text-[10px] opacity-60 font-bold mt-1">-{w.name}</div>
+                                </div>
+                            );
+                        })
+                    ) : (
+                        !isBackground && (
+                            <div className="text-center space-y-4 animate-pulse px-6 opacity-30">
+                                <Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" />
+                                <p className="italic font-bold">等待同仁加入中...</p>
+                            </div>
+                        )
+                    )}
+                </div>
+            );
+        };
+
+        const App = () => {
+            const [user, setUser] = useState(null);
+            const [gameStep, setGameStep] = useState('register'); 
+            const [players, setPlayers] = useState([]);
+            const [gameState, setGameState] = useState({ countdownStartTime: 0, prizesPool: INITIAL_PRIZES });
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [selectedOption, setSelectedOption] = useState(null);
+            const [score, setScore] = useState(0);
+            const [totalTime, setTotalTime] = useState(0);
+            const [quizStartTime, setQuizStartTime] = useState(null);
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [localCountdown, setLocalCountdown] = useState(null);
+
+            useEffect(() => {
+                const unsubscribe = auth.onAuthStateChanged(u => {
+                    if (u) setUser(u); else auth.signInAnonymously();
+                });
+                return () => unsubscribe();
+            }, []);
+
+            useEffect(() => {
+                if (!user) return;
+                const unsubPlayers = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players')
+                    .onSnapshot(s => setPlayers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                const unsubState = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState')
+                    .onSnapshot(s => {
+                        if (s.exists) setGameState(s.data());
+                        else if (isAdmin) db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ countdownStartTime: 0, prizesPool: INITIAL_PRIZES });
+                    });
+                return () => { unsubPlayers(); unsubState(); };
+            }, [user, isAdmin]);
+
+            useEffect(() => {
+                if (gameState.countdownStartTime > 0 && gameStep === 'greetings') {
+                    const timer = setInterval(() => {
+                        const diff = Math.max(0, 5 - Math.floor((Date.now() - gameState.countdownStartTime) / 1000));
+                        setLocalCountdown(diff);
+                        if (diff <= 0) {
+                            clearInterval(timer);
+                            setTimeout(() => { setGameStep('quiz'); setQuizStartTime(Date.now()); }, 800);
+                        }
+                    }, 100);
+                    return () => clearInterval(timer);
+                }
+            }, [gameState.countdownStartTime, gameStep]);
+
+            const sortedPlayers = useMemo(() => {
+                return [...players].sort((a, b) => (b.score - a.score) || (a.totalTime - b.totalTime));
+            }, [players]);
+
+            const me = useMemo(() => sortedPlayers.find(p => p.id === user?.uid), [sortedPlayers, user]);
+            const myRank = useMemo(() => sortedPlayers.findIndex(p => p.id === user?.uid) + 1, [sortedPlayers, user]);
+            const others = useMemo(() => sortedPlayers.filter(p => p.id !== user?.uid), [sortedPlayers, user]);
+
+            const handleRegister = async (e) => {
+                e.preventDefault();
+                const name = e.target.name.value;
+                const greeting = e.target.greeting.value;
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).set({
+                    name, greeting: greeting.substring(0, 10), score: 0, totalTime: 0, prize: '', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                setGameStep('sponsors');
+            };
+
+            const confirmAnswer = async () => {
+                if (selectedOption === null) return;
+                const isCorrect = selectedOption === QUESTIONS[currentQuestionIndex].correct;
+                const newScore = isCorrect ? score + 100 : score;
+                const newTotalTime = totalTime + (Date.now() - quizStartTime);
+
+                if (currentQuestionIndex < QUESTIONS.length - 1) {
+                    setScore(newScore); setTotalTime(newTotalTime);
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    setSelectedOption(null); setQuizStartTime(Date.now());
+                } else {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ score: newScore, totalTime: newTotalTime });
+                    setGameStep('leaderboard');
+                }
+            };
+
+            return (
+                <div className="flex flex-col h-full bg-red-700 max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white">
+                    {/* Header */}
+                    <div className="p-4 flex justify-between items-center bg-red-800/95 border-b border-yellow-600/30 shrink-0 z-20 shadow-md">
+                        <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter">
+                            <span className="text-xl animate-bounce">🐎</span> 2026年達豐 & 明定 春酒活動
+                        </h1>
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-yellow-600/50 px-3 py-1 rounded-full border border-yellow-400/50 font-bold uppercase">
+                            {isAdmin ? 'User' : 'Admin'}
+                        </button>
+                    </div>
+
+                    <div className="flex-grow flex flex-col overflow-y-auto no-scrollbar relative p-4">
+                        {isAdmin ? (
+                            <AdminView players={players} appId={appId} gameState={gameState} PRIZES={INITIAL_PRIZES} sortedPlayers={sortedPlayers} />
+                        ) : (
+                            <div className="flex-grow flex flex-col h-full relative">
+                                {gameStep === 'register' && (
+                                    <div className="my-auto space-y-8 animate-in fade-in zoom-in duration-500 z-10">
+                                        <div className="text-center">
+                                            <div className="bg-yellow-500 w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-4 animate-bounce">
+                                                <Icon name="sparkles" className="text-red-800 w-12 h-12" />
+                                            </div>
+                                            <h2 className="text-3xl font-black text-yellow-400 tracking-widest text-shadow-lg">馬到成功 2026</h2>
+                                        </div>
+                                        <form onSubmit={handleRegister} className="space-y-4 px-4">
+                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-900 border-2 border-yellow-600 focus:border-yellow-400 outline-none text-xl shadow-inner" placeholder="您的姓名" />
+                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-900 border-2 border-yellow-600 focus:border-yellow-400 outline-none text-xl shadow-inner" placeholder="馬年賀詞 (限10字)" />
+                                            <button type="submit" className="w-full py-5 bg-yellow-500 text-red-900 font-black rounded-2xl shadow-xl text-2xl border-b-4 border-yellow-700 active:translate-y-1 transition-all">領取參賽證 🐎</button>
+                                        </form>
+                                    </div>
+                                )}
+
+                                {gameStep === 'sponsors' && (
+                                    <div className="flex-grow flex flex-col h-full space-y-6 animate-in slide-in-from-right duration-500 z-10">
+                                        <h2 className="text-2xl font-black text-yellow-400 text-center mt-4 tracking-wider">感謝贊助商支持</h2>
+                                        <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pb-4">
+                                            {SPONSORS.map((s, i) => (
+                                                <div key={i} className="bg-red-800 p-4 rounded-2xl border border-yellow-600/30 flex items-center gap-4 shadow-md group">
+                                                    <div className="bg-yellow-500/20 p-2 rounded-lg text-yellow-400"><Icon name="gift" className="w-6 h-6" /></div>
+                                                    <div><div className="font-black text-lg text-yellow-50">{s.name}</div><div className="text-sm text-yellow-200/80">{s.prize}</div></div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-yellow-500 text-red-900 font-black rounded-2xl shadow-xl text-xl border-b-4 border-yellow-700 shrink-0">進入準備 <Icon name="chevron-right" className="inline w-6 h-6" /></button>
+                                    </div>
+                                )}
+
+                                {gameStep === 'greetings' && (
+                                    <div className="flex-grow flex flex-col space-y-4 animate-in fade-in duration-500 h-full z-10">
+                                        <div className="text-center shrink-0">
+                                            <Icon name="megaphone" className="mx-auto text-yellow-400 mb-1 w-8 h-8 animate-pulse" />
+                                            <h2 className="text-2xl font-black text-yellow-400">同仁馬年祝賀牆</h2>
+                                            <p className="text-xs text-red-200 opacity-80 italic">祝福匯聚成雲，等候開賽！</p>
+                                        </div>
+                                        <WordCloud words={players} />
+                                        <div className="text-center text-xs text-yellow-400/60 animate-pulse font-bold bg-red-900/30 py-3 rounded-full">💡 請等候主辦方按下啟動倒數...</div>
+                                        {localCountdown !== null && (
+                                            <div className="fixed inset-0 z-50 bg-red-900/98 flex flex-col items-center justify-center animate-in fade-in duration-300">
+                                                <div className="text-yellow-400 font-black text-9xl animate-ping mb-8">{localCountdown}</div>
+                                                <div className="text-white text-2xl font-black tracking-widest bg-yellow-600/20 px-8 py-4 rounded-full border border-yellow-500/30 text-center">挑戰即將開始...</div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {gameStep === 'quiz' && (
+                                    <div className="flex-grow flex flex-col h-full relative">
+                                        {/* ✨ 文字雲背景化 (提高透明度確保可見) ✨ */}
+                                        <WordCloud words={players} isBackground={true} />
+                                        
+                                        <div className="flex-grow flex flex-col space-y-6 z-10">
+                                            <div className="flex justify-between items-center bg-red-800/90 p-3 rounded-xl border border-yellow-600/30 text-xs font-black shrink-0 shadow-lg mt-2">
+                                                <span className="text-yellow-400">題次 {currentQuestionIndex + 1} / 10</span>
+                                                <span className="bg-yellow-500 text-red-900 px-3 py-0.5 rounded-full shadow-inner font-black">得分：{score}</span>
+                                            </div>
+                                            <div className="quiz-card text-red-900 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-4 border-gray-300">
+                                                <p className="text-2xl font-black italic leading-relaxed">{QUESTIONS[currentQuestionIndex].q}</p>
+                                            </div>
+                                            <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
+                                                {QUESTIONS[currentQuestionIndex].a.map((ans, i) => (
+                                                    <button key={i} onClick={() => setSelectedOption(i)} 
+                                                        className={`p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-md active:scale-[0.98]
+                                                            ${selectedOption === i ? 'bg-yellow-500 text-red-900 border-white ring-4 ring-yellow-400/20' : 'bg-red-800/90 border-yellow-600/30 hover:bg-red-700'}`}>
+                                                        <span><span className="mr-4 opacity-50 font-mono">{String.fromCharCode(65 + i)}</span> {ans}</span>
+                                                        {selectedOption === i && <Icon name="check-circle-2" className="w-7 h-7 text-red-900 animate-in zoom-in" />}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="h-24 flex items-center pt-2 shrink-0">
+                                                {selectedOption !== null && (
+                                                    <button onClick={confirmAnswer} className="w-full py-5 bg-yellow-400 text-red-900 font-black rounded-2xl shadow-xl text-2xl border-b-4 border-yellow-600 animate-in slide-in-from-bottom-4">
+                                                        確認送出答案 <Icon name="chevron-right" className="inline w-8 h-8" />
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {gameStep === 'leaderboard' && (
+                                    <div className="flex flex-col space-y-4 h-full animate-in slide-in-from-bottom duration-500 z-10">
+                                        <h2 className="text-3xl font-black text-yellow-400 text-center drop-shadow-md py-4 tracking-widest">馬年風雲榜</h2>
+                                        {me && (
+                                            <div className="bg-yellow-500 text-red-900 p-5 rounded-3xl border-4 border-white shadow-xl mb-4 shrink-0 transform scale-105">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-14 h-14 rounded-full bg-red-700 text-white flex items-center justify-center font-black text-2xl border-2 border-white shadow-lg">{myRank}</div>
+                                                        <div><div className="font-black text-2xl tracking-tighter">{me.name} <span className="text-[10px] bg-red-700 text-white px-2 py-0.5 rounded-full uppercase ml-1 font-black">You</span></div><div className="text-sm font-bold italic opacity-80">"{me.greeting}"</div></div>
+                                                    </div>
+                                                    <div className="text-right"><div className="text-3xl font-black">{me.score}</div><div className="text-[10px] uppercase font-black opacity-50 tracking-widest">Points</div></div>
+                                                </div>
+                                                <div className="mt-4 pt-3 border-t border-red-700/20 text-center bg-red-700 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-sm leading-tight italic">
+                                                    {me.prize ? `🎉 恭喜獲獎：${me.prize}` : "好運奔騰！請稍候片刻，主持人將依名次為列榜英雄撥動轉盤，轉出您的年度強運獎項。"}
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="flex-grow bg-red-800/40 rounded-3xl p-3 border border-yellow-600/20 space-y-2 overflow-y-auto no-scrollbar shadow-inner">
+                                            {others.length > 0 ? others.map((p) => {
+                                                const r = sortedPlayers.findIndex(x => x.id === p.id) + 1;
+                                                return (
+                                                    <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-red-900/40 border border-white/5 shadow-sm transition-all active:scale-[0.98]">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${r === 1 ? 'bg-yellow-400 text-red-900' : r === 2 ? 'bg-gray-300 text-red-900' : r === 3 ? 'bg-amber-600 text-red-900' : 'bg-red-800 text-white opacity-60'}`}>{r}</div>
+                                                            <div><div className="font-bold text-lg opacity-90">{p.name}</div><div className="text-[10px] text-yellow-200/40 italic truncate max-w-[140px]">"{p.greeting}"</div></div>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <div className="font-black text-xl text-yellow-400/80">{p.score}</div>
+                                                            {p.prize && <div className="text-[9px] bg-green-600 text-white px-2 py-0.5 rounded-full mt-1 font-black animate-pulse shadow-md whitespace-nowrap">🎁 {p.prize}</div>}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            }) : <div className="py-20 text-center opacity-30 italic text-sm text-yellow-50">成績同步載入中...</div>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+
+        const AdminView = ({ players, appId, gameState, PRIZES, sortedPlayers }) => {
+            const [selectedId, setSelectedId] = useState('');
+            const [spinning, setSpinning] = useState(false);
+            const [rot, setRot] = useState(0);
+            const prizesPool = gameState.prizesPool || PRIZES;
+            const startCountdown = async () => await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ countdownStartTime: Date.now() });
+            const handleSpin = async () => {
+                if(!selectedId || spinning || prizesPool.length === 0) return;
+                setSpinning(true);
+                const pIdx = Math.floor(Math.random() * prizesPool.length);
+                const won = prizesPool[pIdx];
+                const segAngle = 360 / prizesPool.length;
+                const targetAngle = 360 - (pIdx * segAngle) - (segAngle / 2);
+                const newRot = rot + 1800 + targetAngle - (rot % 360);
+                setRot(newRot);
+                setTimeout(async () => {
+                    setSpinning(false);
+                    const batch = db.batch();
+                    batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(selectedId), { prize: won });
+                    batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { prizesPool: prizesPool.filter((_, idx) => idx !== pIdx) });
+                    await batch.commit();
+                    setSelectedId('');
+                }, 3500);
+            };
+            return (
+                <div className="space-y-6 flex flex-col h-full animate-in fade-in pb-10">
+                    <div className="bg-yellow-500 p-6 rounded-3xl text-red-900 text-center shadow-xl shrink-0 font-black text-2xl">iPad 控管中心</div>
+                    <div className="bg-red-800 p-6 rounded-3xl border-2 border-yellow-600/30 shadow-lg text-center space-y-4 shrink-0">
+                        <div className="text-3xl font-black text-white">{players.length} / 9 位同仁登錄</div>
+                        <button onClick={startCountdown} disabled={gameState.countdownStartTime > 0} className={`w-full py-5 rounded-2xl font-black text-2xl shadow-xl transition-all border-b-4 ${gameState.countdownStartTime > 0 ? 'bg-gray-600' : 'bg-yellow-500 text-red-900 border-yellow-700 active:translate-y-1'}`}>{gameState.countdownStartTime > 0 ? '✅ 倒數訊號已發送' : '🔥 啟動 5秒 統一倒數'}</button>
+                    </div>
+                    <div className="flex-grow flex flex-col items-center bg-red-900/40 p-6 rounded-3xl border border-yellow-600/20 shadow-inner overflow-y-auto no-scrollbar">
+                        <div className="relative w-64 h-64 mb-8 shrink-0">
+                            <div className="w-full h-full rounded-full border-[10px] border-yellow-600 overflow-hidden shadow-2xl transition-transform duration-[3500ms] cubic-bezier(0.15, 0, 0.15, 1) bg-red-900 z-10" style={{ transform: `rotate(${rot}deg)` }}>
+                                {prizesPool.length > 0 ? prizesPool.map((p, i) => {
+                                    const a = 360 / prizesPool.length;
+                                    return (
+                                        <div key={`${p}-${i}`} className="absolute w-full h-full" style={{ transform: `rotate(${i * a}deg)`, clipPath: prizesPool.length > 1 ? 'polygon(50% 50%, 50% 0%, 100% 0%, 100% 50%)' : 'none' }}>
+                                            <div className={`w-full h-full flex items-center justify-center font-black pb-24 ${i % 2 === 0 ? 'bg-red-600 text-white' : 'bg-red-500 text-yellow-100'}`} style={{ transform: `rotate(${a / 2}deg)`, fontSize: prizesPool.length > 5 ? '16px' : '22px' }}><span className="rotate-180 text-center" style={{ writingMode: 'vertical-rl' }}>{p}</span></div>
+                                        </div>
+                                    );
+                                }) : <div className="w-full h-full flex items-center justify-center bg-red-800 text-yellow-400 font-black text-2xl p-4 text-center leading-tight">獎項已全數抽出</div>}
+                            </div>
+                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-5 w-10 h-10 bg-yellow-400 z-20 shadow-2xl" style={{ clipPath: 'polygon(50% 100%, 0% 0%, 100% 0%)' }}></div>
+                        </div>
+                        <div className="w-full space-y-4 shrink-0 px-2 pb-10">
+                            <select className="w-full p-4 bg-red-900 border-2 border-yellow-500 rounded-2xl text-lg font-black text-white outline-none appearance-none" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+                                <option value="">-- 依排名選擇得獎者 --</option>
+                                {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
+                            </select>
+                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-2xl font-black text-2xl shadow-xl transition-all border-b-4 ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800' : 'bg-yellow-500 text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '🐎 命運旋轉中...' : prizesPool.length === 0 ? '獎項已全數抽完' : '🎉 啟動馬年轉盤'}</button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

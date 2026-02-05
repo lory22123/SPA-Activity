@@ -28,7 +28,7 @@
         }
         @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-12px) rotate(1.5deg); }
+            50% { transform: translateY(-10px) rotate(1.5deg); }
         }
         .animate-float { animation: float 4s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -57,7 +57,7 @@
             measurementId: "G-7NVTFPQGR0"
         };
 
-        const appId = 'spa-activity-v12-speed'; 
+        const appId = 'spa-activity-final-v13'; 
 
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -146,7 +146,6 @@
             const [quizStartTime, setQuizStartTime] = useState(null);
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
-            // 用於追蹤當前題目已經過時間的 local state，實現逐秒跳動
             const [currentElapsed, setCurrentElapsed] = useState(0);
 
             useEffect(() => {
@@ -180,14 +179,13 @@
                 }
             }, [gameState.countdownStartTime, gameStep]);
 
-            // ✨ 逐秒更新計時器邏輯 ✨
             useEffect(() => {
                 let interval;
                 if (gameStep === 'quiz' && quizStartTime) {
                     setCurrentElapsed(0);
                     interval = setInterval(() => {
                         setCurrentElapsed(Date.now() - quizStartTime);
-                    }, 100); // 100ms 更新一次，視覺更流暢
+                    }, 100);
                 }
                 return () => clearInterval(interval);
             }, [gameStep, currentQuestionIndex, quizStartTime]);
@@ -241,8 +239,23 @@
                 <div className="flex flex-col h-full bg-red-700 max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
                     {/* Header */}
                     <div className="p-4 flex justify-between items-center bg-red-800/95 border-b border-yellow-600/30 shrink-0 z-20 shadow-md">
-                        <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter"><span className="text-xl animate-bounce">🐎</span> 2026年達豐 & 明定 春酒活動</h1>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-yellow-600/50 px-3 py-1 rounded-full border border-yellow-400/50 font-bold uppercase">{isAdmin ? 'User' : 'Admin'}</button>
+                        <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter">
+                            <span className="text-xl animate-bounce">🐎</span> 2026年達豐 & 明定 春酒活動
+                        </h1>
+                        <div className="flex items-center gap-2">
+                            {/* ✨ 修正：將返回按鈕移至右上角標題列 ✨ */}
+                            {!isAdmin && gameStep === 'leaderboard' && (
+                                <button 
+                                    onClick={resetLocalToLogin} 
+                                    className="text-[10px] bg-red-600/80 px-3 py-1 rounded-full border border-white/30 font-black animate-pulse shadow-lg"
+                                >
+                                    重新測試
+                                </button>
+                            )}
+                            <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-yellow-600/50 px-3 py-1 rounded-full border border-yellow-400/50 font-black uppercase">
+                                {isAdmin ? 'User' : 'Admin'}
+                            </button>
+                        </div>
                     </div>
 
                     <div className="flex-grow flex flex-col overflow-y-auto no-scrollbar relative p-4">
@@ -301,23 +314,21 @@
                                         <WordCloud words={players} isBackground={true} />
                                         <div className="flex-grow flex flex-col space-y-6 z-10">
                                             <div className="flex justify-between items-center bg-red-800/95 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 shadow-lg mt-2">
-                                                {/* ✨ 題次字體放大 ✨ */}
                                                 <span className="text-yellow-400 text-xl tracking-tighter">題次 {currentQuestionIndex + 1} / 10</span>
                                                 <div className="flex gap-4 items-center">
-                                                    {/* ✨ 逐秒即時計時 ✨ */}
                                                     <span className="text-orange-400 text-lg animate-pulse font-mono">⏱ {Math.floor((totalTime + currentElapsed) / 1000)}s</span>
                                                     <span className="bg-yellow-500 text-red-900 px-3 py-1 rounded-full shadow-inner text-sm">得分：{score}</span>
                                                 </div>
                                             </div>
                                             <div className="quiz-card text-red-900 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-4 border-gray-300">
-                                                <p className="text-2xl font-black italic leading-relaxed">{QUESTIONS[currentQuestionIndex].q}</p>
+                                                <p className="text-2xl font-black italic leading-relaxed text-red-800">{QUESTIONS[currentQuestionIndex].q}</p>
                                             </div>
-                                            <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
+                                            <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2 px-1">
                                                 {QUESTIONS[currentQuestionIndex].a.map((ans, i) => (
                                                     <button key={i} onClick={() => setSelectedOption(i)} 
                                                         className={`p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-md active:scale-[0.98]
-                                                            ${selectedOption === i ? 'bg-yellow-500 text-red-900 border-white ring-4 ring-yellow-400/20' : 'bg-red-800/90 border-yellow-600/30 hover:bg-red-700'}`}>
-                                                        <span><span className="mr-4 opacity-50 font-mono">{String.fromCharCode(65 + i)}</span> {ans}</span>
+                                                            ${selectedOption === i ? 'bg-yellow-500 text-red-900 border-white ring-4 ring-yellow-400/20' : 'bg-red-800/60 border-yellow-600/30 hover:bg-red-700'}`}>
+                                                        <span><span className="mr-4 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}</span>
                                                         {selectedOption === i && <Icon name="check-circle-2" className="w-7 h-7 text-red-900 animate-in zoom-in" />}
                                                     </button>
                                                 ))}
@@ -359,7 +370,7 @@
                                                 return (
                                                     <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-red-900/40 border border-white/5 shadow-sm transition-all active:scale-[0.98]">
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${r === 1 ? 'bg-yellow-400 text-red-900' : r === 2 ? 'bg-gray-300 text-red-900' : r === 3 ? 'bg-amber-600 text-red-900' : 'bg-red-800 text-white opacity-60'}`}>{r}</div>
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${r === 1 ? 'bg-yellow-400 text-red-900 shadow-lg' : r === 2 ? 'bg-gray-300 text-red-900' : r === 3 ? 'bg-amber-600 text-red-900' : 'bg-red-800 text-white opacity-60'}`}>{r}</div>
                                                             <div><div className="font-bold text-lg opacity-90">{p.name}</div><div className="text-[10px] text-yellow-200/40 italic truncate max-w-[140px]">"{p.greeting}"</div></div>
                                                         </div>
                                                         <div className="text-right">
@@ -370,9 +381,7 @@
                                                 );
                                             }) : <div className="py-20 text-center opacity-30 italic text-yellow-50">成績同步載入中...</div>}
                                         </div>
-                                        <button onClick={resetLocalToLogin} className="w-full py-4 bg-red-900/50 border border-yellow-600/30 rounded-2xl text-xs font-black tracking-widest text-yellow-400/80 active:bg-yellow-600 active:text-white transition-all shadow-lg flex items-center justify-center gap-2 mb-2">
-                                            <Icon name="arrow-left" className="w-3 h-3" /> 返回註冊頁 (重新測試)
-                                        </button>
+                                        {/* 原本位於此處的返回按鈕已移除，改移至頂部 */}
                                     </div>
                                 )}
                             </div>

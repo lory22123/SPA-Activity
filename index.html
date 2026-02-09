@@ -26,71 +26,58 @@
             overflow: hidden;
             touch-action: manipulation;
         }
-        
-        .bg-gold-gradient {
-            background: linear-gradient(135deg, #d4af37 0%, #f9e498 50%, #b8860b 100%);
-        }
-        .bg-green-gradient {
-            background: linear-gradient(135deg, #15803d 0%, #22c55e 50%, #166534 100%);
-        }
-        .text-gold {
-            background: linear-gradient(to bottom, #f9e498 0%, #d4af37 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
+        .bg-gold-gradient { background: linear-gradient(135deg, #d4af37 0%, #f9e498 50%, #b8860b 100%); }
+        .bg-green-gradient { background: linear-gradient(135deg, #15803d 0%, #22c55e 50%, #166534 100%); }
+        .text-gold { background: linear-gradient(to bottom, #f9e498 0%, #d4af37 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .border-gold { border-color: #d4af37; }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-10px) rotate(1.5deg); }
-        }
+        @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-10px) rotate(1.5deg); } }
         .animate-float { animation: float 4s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .text-shadow-gold { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
-        
-        .quiz-card {
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.2);
-        }
+        .quiz-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.2); }
         .progress-bar { transition: width 0.3s linear; background: linear-gradient(90deg, #b8860b, #f9e498); }
-        
-        @keyframes confetti {
-            0% { transform: translateY(-100%) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
-        }
-        .confetti {
-            position: absolute; width: 8px; height: 8px; 
-            animation: confetti 4s linear infinite;
-        }
+        @keyframes confetti { 0% { transform: translateY(-100%) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
+        .confetti { position: absolute; width: 8px; height: 8px; animation: confetti 4s linear infinite; }
     </style>
 </head>
 <body class="text-white font-sans">
-    <div id="root" class="h-full"></div>
+    <div id="root" class="h-full">
+        <!-- 初始加載顯示，若 React 成功掛載會被覆蓋 -->
+        <div id="loading-screen" class="flex items-center justify-center h-full flex-col gap-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-yellow-500"></div>
+            <p class="text-yellow-500 font-bold animate-pulse">系統初始化中...</p>
+            <div id="error-display" class="text-xs text-red-400 mt-4 px-10 text-center"></div>
+        </div>
+    </div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
-        // --- 修正後的 Firebase 配置 ---
-        // 優先讀取環境變數，若無則使用手動填寫的配置
-        const firebaseConfig = typeof __firebase_config !== 'undefined' 
-            ? JSON.parse(__firebase_config) 
-            : {
-                apiKey: "AIzaSyCuhIpxtvxVux4JhMKvF89JTvs7-MiKK6Q", // 已恢復你的原始 API Key
-                authDomain: "spa-activity.firebaseapp.com",
-                projectId: "spa-activity",
-                storageBucket: "spa-activity.firebasestorage.app",
-                messagingSenderId: "8554093402",
-                appId: "1:8554093402:web:f21469855b0f24eda4f163"
-            };
+        // --- Firebase 配置 ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyCuhIpxtvxVux4JhMKvF89JTvs7-MiKK6Q", 
+            authDomain: "spa-activity.firebaseapp.com",
+            projectId: "spa-activity",
+            storageBucket: "spa-activity.firebasestorage.app",
+            messagingSenderId: "8554093402",
+            appId: "1:8554093402:web:f21469855b0f24eda4f163"
+        };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'spa-activity-v2026-final'; 
+        const appId = 'spa-activity-v2026-production'; 
 
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
+        // 安全啟動 Firebase
+        let auth, db;
+        try {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+            auth = firebase.auth();
+            db = firebase.firestore();
+        } catch (e) {
+            console.error("Firebase Init Error:", e);
+            document.getElementById('error-display').innerText = "Firebase 初始化失敗: " + e.message;
         }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
 
         const Icon = ({ name, className = "" }) => {
             const containerRef = useRef(null);
@@ -135,7 +122,7 @@
             ];
             return (
                 <div className={`transition-all duration-1000 ${isBackground ? 'absolute inset-0 z-0 opacity-40 pointer-events-none' : 'relative w-full flex-grow min-h-[350px] bg-red-900/40 rounded-3xl border-2 border-yellow-500/10 shadow-inner overflow-hidden flex flex-col items-center justify-center'}`}>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-[150px]">🐎</div>
+                    <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none text-[150px]">🐎</div>
                     {words.length > 0 ? (
                         words.slice(0, 9).map((w, idx) => {
                             const slot = slots[idx % slots.length];
@@ -177,15 +164,20 @@
 
             useEffect(() => {
                 const initAuth = async () => {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await auth.signInWithCustomToken(__initial_auth_token);
-                    } else {
-                        await auth.signInAnonymously();
+                    try {
+                        const unsubscribe = auth.onAuthStateChanged(async (u) => {
+                            if (u) {
+                                setUser(u);
+                            } else {
+                                await auth.signInAnonymously();
+                            }
+                        });
+                        return () => unsubscribe();
+                    } catch (e) {
+                        console.error("Auth init error:", e);
                     }
                 };
                 initAuth();
-                const unsubscribe = auth.onAuthStateChanged(u => { if (u) setUser(u); });
-                return () => unsubscribe();
             }, []);
 
             useEffect(() => {
@@ -200,7 +192,7 @@
                             setSelectedOption(null);
                             setTempSelectedOption(null);
                         }
-                    });
+                    }, err => console.error("Firestore Players Err:", err));
                 
                 const unsubState = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState')
                     .onSnapshot(s => {
@@ -211,12 +203,10 @@
                                 setSelectedOption(null);
                                 setTempSelectedOption(null); 
                             }
-                            
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
                                 setTimeout(() => setGlobalCelebration(null), 6000);
                             }
-                            
                             const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
                             if (!data.isGameStarted && !allowedStepsBeforeStart.includes(gameStep)) {
                                 setGameStep('register');
@@ -228,7 +218,7 @@
                                 countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
                             }, { merge: true });
                         }
-                    });
+                    }, err => console.error("Firestore State Err:", err));
                 return () => { unsubPlayers(); unsubState(); };
             }, [user, isAdmin, gameStep]);
 
@@ -286,15 +276,11 @@
 
             const handleConfirmAnswer = async () => {
                 if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 8) return;
-                
                 const index = tempSelectedOption;
                 setSelectedOption(index); 
-                
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
-                
                 const newScore = isCorrect ? (me?.score || 0) + 8 : (me?.score || 0);
-                
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
                     score: newScore,
                     lastChoice: index
@@ -500,7 +486,6 @@
                         )}
                     </div>
 
-                    {/* 全域慶祝彈窗 */}
                     {globalCelebration && !isAdmin && (
                         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-500">
                             <div className="absolute inset-0 bg-black/80 backdrop-blur-lg"></div>
@@ -560,7 +545,6 @@
                         lastWinner: null 
                     }, { merge: true });
                     await batch.commit();
-                    
                     setActiveTab('control');
                     setConfirmReset(false);
                     setSelectedId('');
@@ -720,7 +704,7 @@
 
                                                 <div className="bg-red-950/60 rounded-3xl overflow-hidden border border-yellow-600/20 shadow-2xl">
                                                     <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex justify-between">
-                                                        <span>答題進度 (Q{selectedQuestionTab+1})</span>
+                                                        <span>答題詳情 (Q{selectedQuestionTab+1})</span>
                                                     </div>
                                                     {gameState.currentQuestionIndex === selectedQuestionTab && (
                                                         <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center border-b border-white/5">
@@ -820,7 +804,6 @@
                         </div>
                     </div>
 
-                    {/* 管理員領獎確認彈窗 */}
                     {pendingResult && (
                         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
                             <div className="bg-white rounded-[60px] w-full max-w-sm overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.8)] border-8 border-yellow-500 transform animate-in zoom-in duration-500">
@@ -836,7 +819,7 @@
                                     </div>
                                     <div className="flex gap-3">
                                         <button onClick={() => { setPendingResult(null); setSelectedId(''); }} className="flex-1 py-4 text-gray-400 font-bold hover:text-red-500 text-sm italic">重抽</button>
-                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
+                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
                                     </div>
                                 </div>
                             </div>

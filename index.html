@@ -82,7 +82,7 @@
                 appId: "1:8554093402:web:f21469855b0f24eda4f163"
             };
 
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'spa-activity-v2026-v6'; 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'spa-activity-v2026-final'; 
 
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
@@ -102,18 +102,18 @@
         };
 
         const QUESTIONS = [
-            { q: "今天是哪2間公司的春酒活動呢？", a: ["豐達 明定", "佳德 & 明豐", "達豐 明定", "長榮 陽明"], correct: 2 },
-            { q: "請問達豐和明定的春酒活動，辦在農曆幾月幾號？", a: ["2月23日", "1月10日", "2月26日", "2月10日"], correct: 2 },
+            { q: "今天是哪2間公司的春酒活動呢？", a: ["豐達 & 明定", "佳德 & 明豐", "達豐 & 明定", "長榮 & 陽明"], correct: 2 },
+            { q: "請問達豐和明定的春酒活動，辦在農曆幾月幾號？", a: ["2月23日", "1月10日", "2月26日", "2月10日"], correct: 1 },
             { q: "2026 年是天干地支中的什麼年？", a: ["甲辰", "辛丑", "癸巳", "丙午"], correct: 3 },
-            { q: "公司英文地址是下列何者？", a: ["9F-2 NO. 206, SEC2, NANJING EAST ROAD, TAIPEI, TAIWAN", "9F-2 NO. 206, SEC2, NENJING EAST ROAD, TAIPEI, TAIWAN"], correct: 0 },
+            { q: "公司英文地址是下列何者？", a: ["9F-2 NO. 206, SEC2, NANJING EAST ROAD, TAIPEI, TAIWAN ", "9F-2 NO. 206, SEC2, NENJING EAST ROAD, TAIPEI, TAIWAN "], correct: 0 },
             { q: "公司有幾個冷氣出風口？", a: ["3", "5", "7", "9"], correct: 3 },
             { q: "公司有2個掛衣架，請問上面有幾隻衣架？", a: ["3", "5", "7", "9"], correct: 1 },
-            { q: "每個奇數月與Sherry張以員購價購入隱形眼鏡，應以何為倍數做訂購？", a: ["5", "10", "20", "50"], correct: 1 },
-            { q: "3月輪到哪2位同事，分別來清理掃地機器人& 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
+            { q: "每個奇數月與 Sherry 張以員購價購入隱形眼鏡，應以何為倍數做訂購？", a: ["5", "10", "20", "50"], correct: 0 },
+            { q: "3月輪到哪2位同事，分別來清理掃地機器人 & 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
             { q: "公司新購買的微波爐，是哪一個廠牌？", a: ["Panasonic", "SAMPO", "Whirpool", "TOSHIBA"], correct: 2 },
-            { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy桌上被咬破的零食們", "Sherry垃圾桶的零食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
+            { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的零食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
             { q: "哪一間離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
-            { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] } // 全對
+            { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
 
         const SPONSORS = [
@@ -166,7 +166,8 @@
             const [gameState, setGameState] = useState({ 
                 countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
             });
-            const [selectedOption, setSelectedOption] = useState(null);
+            const [tempSelectedOption, setTempSelectedOption] = useState(null); 
+            const [selectedOption, setSelectedOption] = useState(null); 
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
             const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -189,30 +190,50 @@
             // 數據監聽
             useEffect(() => {
                 if (!user) return;
+                
                 const unsubPlayers = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players')
-                    .onSnapshot(s => setPlayers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                    .onSnapshot(s => {
+                        const currentPlayers = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                        setPlayers(currentPlayers);
+                        if (gameStep !== 'register' && !currentPlayers.some(p => p.id === user.uid)) {
+                            setGameStep('register');
+                            setSelectedOption(null);
+                            setTempSelectedOption(null);
+                        }
+                    });
                 
                 const unsubState = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState')
                     .onSnapshot(s => {
                         if (s.exists) {
                             const data = s.data();
                             setGameState(data);
-                            if (data.isGameStarted) setSelectedOption(null);
+                            if (data.isGameStarted) {
+                                setSelectedOption(null);
+                                setTempSelectedOption(null); 
+                            }
                             
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
                                 setTimeout(() => setGlobalCelebration(null), 6000);
                             }
+                            
+                            const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
+                            if (!data.isGameStarted && !allowedStepsBeforeStart.includes(gameStep)) {
+                                setGameStep('register');
+                                setSelectedOption(null);
+                                setTempSelectedOption(null);
+                            }
                         } else if (isAdmin) {
+                            // 使用 set 而非 update，確保初始化
                             db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ 
                                 countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
-                            });
+                            }, { merge: true });
                         }
                     });
                 return () => { unsubPlayers(); unsubState(); };
-            }, [user, isAdmin]);
+            }, [user, isAdmin, gameStep]);
 
-            // 自動計時 (5秒答題)
+            // 自動計時 (8秒)
             useEffect(() => {
                 if (!gameState.phaseStartTime || !gameState.isGameStarted) return;
                 const timer = setInterval(() => {
@@ -224,7 +245,7 @@
 
             const currentPhase = useMemo(() => {
                 if (gameState.viewMode === 'final') return 'final';
-                if (elapsedSeconds < 5) return 'question'; 
+                if (elapsedSeconds < 8) return 'question'; 
                 return 'rank'; 
             }, [elapsedSeconds, gameState.viewMode]);
 
@@ -265,15 +286,15 @@
                 setGameStep('sponsors');
             };
 
-            const confirmAnswer = async (index) => {
-                if (selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 5) return;
-                setSelectedOption(index);
+            const handleConfirmAnswer = async () => {
+                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 8) return;
                 
-                // 檢查是否正確 (處理單一正確與全對陣列)
+                const index = tempSelectedOption;
+                setSelectedOption(index); 
+                
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
                 
-                // 改動：每題固定的 8 分
                 const newScore = isCorrect ? (me?.score || 0) + 8 : (me?.score || 0);
                 
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
@@ -356,22 +377,40 @@
                                         <WordCloud words={players} isBackground={true} />
                                         
                                         {currentPhase === 'question' ? (
-                                            <div className="flex-grow flex flex-col space-y-6 z-10">
+                                            <div className="flex-grow flex flex-col space-y-4 z-10">
                                                 <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
-                                                    <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 5 - elapsedSeconds) * 20}%` }}></div>
+                                                    <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
                                                     <span className="text-gold text-xl italic">第 {gameState.currentQuestionIndex + 1} 題</span>
-                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 3 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 5 - elapsedSeconds)}s</span>
+                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 6 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 8 - elapsedSeconds)}s</span>
                                                 </div>
                                                 <div className="quiz-card text-red-950 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
                                                     <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[gameState.currentQuestionIndex].q}</p>
                                                 </div>
-                                                <div className="grid grid-cols-1 gap-4 flex-grow overflow-y-auto no-scrollbar pb-6">
+                                                <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
                                                     {QUESTIONS[gameState.currentQuestionIndex].a.map((ans, i) => (
-                                                        <button key={i} onClick={() => confirmAnswer(i)} disabled={selectedOption !== null || elapsedSeconds >= 5}
-                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${selectedOption === i ? 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20' : 'bg-red-950/40 border-yellow-600/30'}`}>
+                                                        <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
+                                                            disabled={selectedOption !== null || elapsedSeconds >= 8}
+                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${selectedOption === i ? 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20' : tempSelectedOption === i ? 'border-yellow-400 bg-red-900/80 ring-2 ring-yellow-500/50 scale-[1.02]' : 'bg-red-950/40 border-yellow-600/30'}`}>
                                                             <span className="relative z-10"><span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}</span>
+                                                            {tempSelectedOption === i && selectedOption === null && <Icon name="mouse-pointer-2" className="w-5 h-5 text-yellow-400 animate-pulse" />}
                                                         </button>
                                                     ))}
+                                                </div>
+                                                
+                                                <div className="h-20 shrink-0 flex items-center justify-center">
+                                                    {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
+                                                        <button 
+                                                            onClick={handleConfirmAnswer}
+                                                            className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3"
+                                                        >
+                                                            確認送出答案 <Icon name="send" className="w-6 h-6" />
+                                                        </button>
+                                                    )}
+                                                    {selectedOption !== null && (
+                                                        <div className="text-yellow-400 font-black italic animate-pulse flex items-center gap-2 text-xl drop-shadow-md">
+                                                            <Icon name="check-circle" className="w-7 h-7" /> 答案已送出，等待結果...
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         ) : (
@@ -384,13 +423,11 @@
                                                     <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest">
                                                         <Icon name="check-circle" className="w-4 h-4" /> Correct Answer
                                                     </div>
-                                                    {/* ✨ 更新：處理全對顯示 ✨ */}
                                                     <p className="text-2xl font-black italic">
                                                         {Array.isArray(QUESTIONS[gameState.currentQuestionIndex].correct) 
-                                                            ? "全對：以上皆是！" 
+                                                            ? "以上皆是！" 
                                                             : QUESTIONS[gameState.currentQuestionIndex].a[QUESTIONS[gameState.currentQuestionIndex].correct]}
                                                     </p>
-                                                    
                                                     {(() => {
                                                         const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                                                         const isCorrect = Array.isArray(correctRef) ? correctRef.includes(selectedOption) : selectedOption === correctRef;
@@ -407,7 +444,7 @@
                                                 </div>
 
                                                 <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
-                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest">Current Rankings</h3>
+                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜</h3>
                                                     {sortedPlayers.slice(0, 5).map((p, i) => (
                                                         <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
                                                             <div className="flex items-center gap-3">
@@ -441,7 +478,7 @@
                                                         <div className="text-[10px] uppercase font-black opacity-50">Points</div>
                                                     </div>
                                                 </div>
-                                                {me.prize && <div className="mt-4 pt-3 border-t border-red-950/10 text-center bg-red-800 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-sm italic animate-pulse">🎉 獲得獎項：{me.prize}</div>}
+                                                {me.prize && <div className="mt-4 pt-3 border-t border-red-950/10 text-center bg-red-800 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-sm italic animate-pulse">🎉 榮獲獎項：{me.prize}</div>}
                                             </div>
                                         )}
                                         <div className="flex-grow bg-black/30 rounded-3xl p-3 border-2 border-yellow-600/10 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
@@ -512,39 +549,50 @@
                 }
                 
                 try {
-                    if (!auth.currentUser) await auth.signInAnonymously();
                     const batch = db.batch();
-                    players.forEach(p => batch.delete(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(p.id)));
-                    batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
-                        countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
+                    players.forEach(p => {
+                        batch.delete(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(p.id));
                     });
+                    // ✨ 修正：使用 set(..., {merge: true}) 確保文件存在 ✨
+                    batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
+                        countdownStartTime: 0, 
+                        prizesPool: INITIAL_PRIZES, 
+                        currentQuestionIndex: 0, 
+                        isGameStarted: false, 
+                        phaseStartTime: 0, 
+                        viewMode: 'question', 
+                        lastWinner: null 
+                    }, { merge: true });
                     await batch.commit();
+                    
                     setActiveTab('control');
                     setConfirmReset(false);
+                    setSelectedId('');
                 } catch (e) {
                     console.error("Reset failed:", e);
                 }
             };
 
             const startGlobalCountdown = async () => {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ 
+                // ✨ 修正：使用 set(..., {merge: true}) ✨
+                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ 
                     countdownStartTime: Date.now(),
                     isGameStarted: true,
                     phaseStartTime: Date.now() + 5000 
-                });
+                }, { merge: true });
             };
 
             const handleNextQuestion = async () => {
                 if (gameState.currentQuestionIndex >= QUESTIONS.length - 1) {
-                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ viewMode: 'final' });
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ viewMode: 'final' }, { merge: true });
                     return;
                 }
                 const batch = db.batch();
-                batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
+                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
                     currentQuestionIndex: gameState.currentQuestionIndex + 1,
                     phaseStartTime: Date.now(),
                     viewMode: 'question'
-                });
+                }, { merge: true });
                 players.forEach(p => { batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(p.id), { lastChoice: null }); });
                 await batch.commit();
                 setSelectedQuestionTab(gameState.currentQuestionIndex + 1); 
@@ -571,10 +619,10 @@
                 const { id, name, prize, poolIndex } = pendingResult;
                 const batch = db.batch();
                 batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(id), { prize: prize });
-                batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
+                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
                     prizesPool: prizesPool.filter((_, idx) => idx !== poolIndex),
                     lastWinner: { name, prize, timestamp: Date.now() } 
-                });
+                }, { merge: true });
                 await batch.commit();
                 setPendingResult(null);
                 setSelectedId('');
@@ -587,7 +635,6 @@
 
             return (
                 <div className="flex flex-col h-full overflow-hidden">
-                    {/* --- 置頂中控直播 --- */}
                     <div className="bg-red-950 p-4 rounded-3xl border-2 border-yellow-600/30 shadow-2xl mb-4 shrink-0">
                         {!gameState.isGameStarted ? (
                             <div className="flex items-center justify-between">
@@ -602,7 +649,7 @@
                                         <span className="text-gold font-black text-xl italic tracking-tighter">Q{gameState.currentQuestionIndex + 1} ({currentPhase === 'question' ? '答題中' : '戰報展示'})</span>
                                     </div>
                                     <div className="text-2xl font-mono text-white bg-black/40 px-3 py-1 rounded-lg border border-white/10 shadow-inner">
-                                        ⏱ {currentPhase === 'question' ? Math.max(0, 5 - elapsedSeconds) : 0}s
+                                        ⏱ {currentPhase === 'question' ? Math.max(0, 8 - elapsedSeconds) : 0}s
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -618,10 +665,7 @@
                         )}
                     </div>
 
-                    {/* --- 下方網格佈局 (並排展示) --- */}
                     <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden mb-20">
-                        
-                        {/* 左欄：操作內容 */}
                         <div className="md:col-span-8 flex flex-col overflow-hidden">
                             <div className="flex bg-black/40 p-1 rounded-2xl mb-4 border border-yellow-600/20 shrink-0">
                                 {TABS.map(t => (
@@ -635,7 +679,6 @@
                             <div className="flex-grow overflow-y-auto no-scrollbar pb-10">
                                 {activeTab === 'control' && (
                                     <div className="space-y-4 animate-in fade-in duration-300">
-                                        {/* 題目分頁標籤 */}
                                         <div className="flex flex-wrap gap-2 px-1 mb-2">
                                             {QUESTIONS.map((_, idx) => {
                                                 const isCompleted = idx < gameState.currentQuestionIndex;
@@ -668,11 +711,15 @@
                                                     </div>
                                                     <p className="text-lg font-black italic mb-4 leading-snug">{QUESTIONS[selectedQuestionTab].q}</p>
                                                     <div className="grid grid-cols-2 gap-2">
-                                                        {QUESTIONS[selectedQuestionTab].a.map((ans, i) => (
-                                                            <div key={i} className={`p-3 rounded-xl text-[11px] font-bold border ${Array.isArray(QUESTIONS[selectedQuestionTab].correct) ? (QUESTIONS[selectedQuestionTab].correct.includes(i) ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60') : (QUESTIONS[selectedQuestionTab].correct === i ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60')}`}>
-                                                                <span className="opacity-50 mr-1">{String.fromCharCode(65 + i)}.</span> {ans}
-                                                            </div>
-                                                        ))}
+                                                        {QUESTIONS[selectedQuestionTab].a.map((ans, i) => {
+                                                            const correctRef = QUESTIONS[selectedQuestionTab].correct;
+                                                            const isAnswerCorrect = Array.isArray(correctRef) ? correctRef.includes(i) : correctRef === i;
+                                                            return (
+                                                                <div key={i} className={`p-3 rounded-xl text-[11px] font-bold border ${isAnswerCorrect ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60'}`}>
+                                                                    <span className="opacity-50 mr-1">{String.fromCharCode(65 + i)}.</span> {ans}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
                                                 </div>
 
@@ -752,7 +799,6 @@
                             </div>
                         </div>
 
-                        {/* 右欄：即時戰績排行 */}
                         <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
                             <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30">
                                 <Icon name="trending-up" className="w-4 h-4" />
@@ -775,9 +821,6 @@
                                         </div>
                                     </div>
                                 )) : <div className="p-12 text-center text-white/20 italic text-xs uppercase tracking-widest animate-pulse font-black">Waiting for heroes...</div>}
-                                {sortedPlayers.length > 15 && (
-                                    <div className="p-3 text-center text-[10px] text-white/20 italic font-bold uppercase">Only Top 15 displayed</div>
-                                )}
                             </div>
                         </div>
                     </div>
@@ -791,10 +834,7 @@
                                     <h2 className="text-red-950 font-black text-3xl mt-4 italic tracking-tighter">獲獎驗證！</h2>
                                 </div>
                                 <div className="p-10 text-center space-y-8 bg-white">
-                                    <div className="space-y-1">
-                                        <p className="text-gray-400 font-bold text-sm uppercase italic">得獎英雄</p>
-                                        <p className="text-gray-900 font-black text-4xl tracking-tighter">{pendingResult.name}</p>
-                                    </div>
+                                    <div><p className="text-gray-400 font-bold text-sm uppercase italic">得獎英雄</p><p className="text-gray-900 font-black text-4xl tracking-tighter">{pendingResult.name}</p></div>
                                     <div className="py-6 px-4 bg-red-50 rounded-[30px] border-4 border-red-100 shadow-inner">
                                         <p className="text-red-500 font-bold text-xs uppercase mb-1 italic">確認核發獎項</p>
                                         <p className="text-red-900 font-black text-3xl italic tracking-tight">{pendingResult.prize}</p>

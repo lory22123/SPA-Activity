@@ -65,16 +65,18 @@
         }
     </style>
 </head>
-<body class="text-white font-sans selection:bg-yellow-400">
+<body class="text-white font-sans">
     <div id="root" class="h-full"></div>
 
     <script type="text/babel">
         const { useState, useEffect, useMemo, useRef } = React;
 
+        // --- 修正後的 Firebase 配置 ---
+        // 優先讀取環境變數，若無則使用手動填寫的配置
         const firebaseConfig = typeof __firebase_config !== 'undefined' 
             ? JSON.parse(__firebase_config) 
             : {
-                apiKey: "",
+                apiKey: "AIzaSyCuhIpxtvxVux4JhMKvF89JTvs7-MiKK6Q", // 已恢復你的原始 API Key
                 authDomain: "spa-activity.firebaseapp.com",
                 projectId: "spa-activity",
                 storageBucket: "spa-activity.firebasestorage.app",
@@ -111,7 +113,7 @@
             { q: "每個奇數月與 Sherry 張以員購價購入隱形眼鏡，應以何為倍數做訂購？", a: ["5", "10", "20", "50"], correct: 0 },
             { q: "3月輪到哪2位同事，分別來清理掃地機器人 & 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
             { q: "公司新購買的微波爐，是哪一個廠牌？", a: ["Panasonic", "SAMPO", "Whirpool", "TOSHIBA"], correct: 2 },
-            { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的零食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
+            { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的營食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
             { q: "哪一間離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
             { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
@@ -173,7 +175,6 @@
             const [elapsedSeconds, setElapsedSeconds] = useState(0);
             const [globalCelebration, setGlobalCelebration] = useState(null);
 
-            // 認證監聽
             useEffect(() => {
                 const initAuth = async () => {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -187,7 +188,6 @@
                 return () => unsubscribe();
             }, []);
 
-            // 數據監聽
             useEffect(() => {
                 if (!user) return;
                 
@@ -224,7 +224,6 @@
                                 setTempSelectedOption(null);
                             }
                         } else if (isAdmin) {
-                            // 使用 set 而非 update，確保初始化
                             db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ 
                                 countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
                             }, { merge: true });
@@ -233,7 +232,6 @@
                 return () => { unsubPlayers(); unsubState(); };
             }, [user, isAdmin, gameStep]);
 
-            // 自動計時 (8秒)
             useEffect(() => {
                 if (!gameState.phaseStartTime || !gameState.isGameStarted) return;
                 const timer = setInterval(() => {
@@ -312,7 +310,6 @@
 
             return (
                 <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
-                    {/* Header */}
                     <div className="p-4 flex justify-between items-center bg-red-950/80 backdrop-blur-md border-b-2 border-yellow-600/30 shrink-0 z-20 shadow-xl">
                         <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter italic">
                            <span className="text-yellow-500 drop-shadow-md">🐎 2026 達豐 & 明定 春酒</span>
@@ -553,7 +550,6 @@
                     players.forEach(p => {
                         batch.delete(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(p.id));
                     });
-                    // ✨ 修正：使用 set(..., {merge: true}) 確保文件存在 ✨
                     batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
                         countdownStartTime: 0, 
                         prizesPool: INITIAL_PRIZES, 
@@ -574,7 +570,6 @@
             };
 
             const startGlobalCountdown = async () => {
-                // ✨ 修正：使用 set(..., {merge: true}) ✨
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ 
                     countdownStartTime: Date.now(),
                     isGameStarted: true,

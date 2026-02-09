@@ -297,9 +297,10 @@
                 
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
+                
                 const newScore = isCorrect ? (me?.score || 0) + 10 : (me?.score || 0);
                 
-                // ✨ 重點：紀錄特定題目的答案，避免覆蓋 ✨
+                // ✨ 重點修正：將答案儲存在 answers 物件中，防止被後面的題目覆蓋 ✨
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
                     score: newScore,
                     [`answers.${gameState.currentQuestionIndex}`]: index 
@@ -391,6 +392,7 @@
                                                         </button>
                                                     ))}
                                                 </div>
+                                                
                                                 <div className="h-20 shrink-0 flex items-center justify-center">
                                                     {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
                                                         <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
@@ -645,8 +647,7 @@
                                                         {(() => {
                                                             const stats = [0, 0, 0, 0];
                                                             players.forEach(p => { 
-                                                                // ✨ 修正：確保 Key 是字串，且能正確讀取到 answers 歷史紀錄 ✨
-                                                                const choice = p.answers?.[selectedQuestionTab.toString()] ?? p.answers?.[selectedQuestionTab];
+                                                                const choice = p.answers?.[selectedQuestionTab];
                                                                 if(choice !== undefined && choice !== null) stats[choice]++; 
                                                             });
                                                             const total = stats.reduce((a, b) => a + b, 0);
@@ -660,11 +661,9 @@
                                                     </div>
                                                     <div className="max-h-64 overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/20">
                                                         {players.map(p => {
-                                                            // ✨ 修正：從 answers 物件中讀取特定題目的紀錄 ✨
-                                                            const userChoice = p.answers?.[selectedQuestionTab.toString()] ?? p.answers?.[selectedQuestionTab];
+                                                            const userChoice = p.answers?.[selectedQuestionTab];
                                                             const hasChoice = userChoice !== undefined && userChoice !== null;
-                                                            const correctRef = QUESTIONS[selectedQuestionTab].correct;
-                                                            const isCorrectChoice = hasChoice && (Array.isArray(correctRef) ? correctRef.includes(userChoice) : userChoice === correctRef);
+                                                            const isCorrectChoice = hasChoice && ((QUESTIONS[selectedQuestionTab].correct === userChoice) || (Array.isArray(QUESTIONS[selectedQuestionTab].correct) && QUESTIONS[selectedQuestionTab].correct.includes(userChoice)));
                                                             
                                                             return (
                                                                 <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs transition-colors hover:bg-white/5">
@@ -717,7 +716,7 @@
                                                 <option value="">-- 選擇得獎英雄 --</option>
                                                 {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                                             </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
+                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
                                         </div>
                                     </div>
                                 )}

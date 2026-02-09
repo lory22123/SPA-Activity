@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2026年達豐 & 明定 春酒搶答大賽</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --app-height: 100dvh; }
@@ -45,8 +40,7 @@
     <div id="root" class="h-full">
         <div id="loading-screen" class="flex items-center justify-center h-full flex-col gap-4">
             <div class="animate-spin rounded-full h-12 w-12 border-t-4 border-yellow-500"></div>
-            <p class="text-yellow-500 font-bold animate-pulse text-xl">2026 春酒活動系統載入中...</p>
-            <div id="error-display" class="text-xs text-red-400 mt-4 px-10 text-center"></div>
+            <p class="text-yellow-500 font-bold animate-pulse text-xl">系統資料載入中...</p>
         </div>
     </div>
 
@@ -62,20 +56,14 @@
             appId: "1:8554093402:web:f21469855b0f24eda4f163"
         };
 
-        const appId = 'spa-activity-v2026-final'; 
+        const appId = 'spa-activity-v2026-production'; 
 
         let auth, db;
-        try {
-            if (!firebase.apps.length) {
-                firebase.initializeApp(firebaseConfig);
-            }
-            auth = firebase.auth();
-            db = firebase.firestore();
-        } catch (e) {
-            console.error("Firebase Init Error:", e);
-            const errorEl = document.getElementById('error-display');
-            if (errorEl) errorEl.innerText = "Firebase 啟動失敗，請檢查網路連線。";
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
         }
+        auth = firebase.auth();
+        db = firebase.firestore();
 
         const Icon = ({ name, className = "" }) => {
             const containerRef = useRef(null);
@@ -92,7 +80,7 @@
             { q: "今天是哪 2 間公司的春酒活動呢？", a: ["豐達 & 明定", "佳德 & 明豐", "達豐 & 明定", "長榮 & 陽明"], correct: 2 },
             { q: "請問達豐和明定的春酒活動，辦在農曆幾月幾號？", a: ["2 月 23 日", "1 月 10 日", "2 月 26 日", "2 月 10 日"], correct: 1 },
             { q: "2026 年是天干地支中的什麼年？", a: ["甲辰", "辛丑", "癸巳", "丙午"], correct: 3 },
-            { q: "公司英文地址是下列何者？", a: ["9F-2 NO. 206, SEC2, NANJING EAST ROAD, TAIPEI, TAIWAN ", "9F-2 NO. 206, SEC2, NENJING EAST ROAD, TAIPEI, TAIWAN "], correct: 0 },
+            { q: "公司英文地址是下列何者？", a: ["9F-2 NO. 206, SEC2, NANJING EAST ROAD, TAIPEI, TAIWAN", "9F-2 NO. 206, SEC2, NENJING EAST ROAD, TAIPEI, TAIWAN"], correct: 0 },
             { q: "公司有幾個冷氣出風口？", a: ["3", "5", "7", "9"], correct: 3 },
             { q: "公司有 2 個掛衣架，請問上面有幾隻衣架？", a: ["3", "5", "7", "9"], correct: 1 },
             { q: "每個奇數月與 Sherry 張以員購價購入隱形眼鏡，應以何為倍數做訂購？", a: ["5", "10", "20", "50"], correct: 0 },
@@ -103,45 +91,21 @@
             { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
 
-        const SPONSORS = [
-            { name: "茂碩通運股份有限公司", prize: "現金 5,000 元" },
-            { name: "宇宙聯運企業有限公司", prize: "現金 3,000 元" },
-            { name: "獅威航空貨運承攬股份有限公司", prize: "全聯禮券 2,000 元" },
-            { name: "信全運通有限公司", prize: "全聯禮券 1,000 元" }
-        ];
-
         const INITIAL_PRIZES = ["8888元", "6666元", "3600元", "2000元", "1200元", "600元", "馬年金幣", "加碼獎", "驚喜禮包"];
 
         const WordCloud = ({ words, isBackground = false }) => {
-            const slots = [
-                { t: 10, l: 15, rot: -4 }, { t: 25, l: 55, rot: 6 }, { t: 40, l: 10, rot: -8 },
-                { t: 55, l: 65, rot: 4 }, { t: 65, l: 15, rot: 10 }, { t: 78, l: 50, rot: -4 },
-                { t: 88, l: 20, rot: 8 }, { t: 45, l: 75, rot: -10 }, { t: 5, l: 45, rot: 5 }
-            ];
+            const slots = [{ t: 10, l: 15, rot: -4 }, { t: 25, l: 55, rot: 6 }, { t: 40, l: 10, rot: -8 }, { t: 55, l: 65, rot: 4 }, { t: 65, l: 15, rot: 10 }, { t: 78, l: 50, rot: -4 }, { t: 88, l: 20, rot: 8 }, { t: 45, l: 75, rot: -10 }, { t: 5, l: 45, rot: 5 }];
             return (
                 <div className={`transition-all duration-1000 ${isBackground ? 'absolute inset-0 z-0 opacity-40 pointer-events-none' : 'relative w-full flex-grow min-h-[350px] bg-red-900/40 rounded-3xl border-2 border-yellow-500/10 shadow-inner overflow-hidden flex flex-col items-center justify-center'}`}>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-[150px]">🐎</div>
-                    {words.length > 0 ? (
-                        words.slice(0, 9).map((w, idx) => {
-                            const slot = slots[idx % slots.length];
-                            const colors = ['text-yellow-400', 'text-white', 'text-amber-200', 'text-yellow-100'];
-                            return (
-                                <div key={w.id || idx} className={`absolute animate-float font-black text-center drop-shadow-xl transition-all duration-1000`}
-                                    style={{ 
-                                        top: `${slot.t}%`, 
-                                        left: `${slot.l}%`, 
-                                        transform: `rotate(${slot.rot}deg)`, 
-                                        color: colors[idx % colors.length], 
-                                        fontSize: isBackground ? `${Math.max(18, 36 - (w.greeting || '').length * 2)}px` : `${Math.max(22, 44 - (w.greeting || '').length * 2)}px`
-                                    }}>
-                                    <div className="text-shadow-gold">{w.greeting}</div>
-                                    <div className="text-[10px] opacity-60 font-bold mt-1">-{w.name}</div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold">等待英雄登錄中...</p></div>
-                    )}
+                    {words.length > 0 ? words.slice(0, 9).map((w, idx) => {
+                        const slot = slots[idx % slots.length];
+                        return (
+                            <div key={idx} className="absolute animate-float font-black text-center" style={{ top: `${slot.t}%`, left: `${slot.l}%`, transform: `rotate(${slot.rot}deg)`, color: '#f9e498', fontSize: '24px' }}>
+                                <div className="text-shadow-gold">{w.greeting}</div>
+                                <div className="text-[10px] opacity-60 mt-1">-{w.name}</div>
+                            </div>
+                        );
+                    }) : <div className="text-center opacity-30 italic font-bold">等待英雄登錄中...</div>}
                 </div>
             );
         };
@@ -150,131 +114,64 @@
             const [user, setUser] = useState(null);
             const [gameStep, setGameStep] = useState('register'); 
             const [players, setPlayers] = useState([]);
-            const [gameState, setGameState] = useState({ 
-                countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
-            });
+            const [gameState, setGameState] = useState({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question' });
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
-            const [lastResultCorrect, setLastResultCorrect] = useState(null); // ✨ 新增：鎖定當前題目的結果 ✨
+            const [isCorrectLocked, setIsCorrectLocked] = useState(null); // ✨ 鎖定結果 ✨
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
             const [elapsedSeconds, setElapsedSeconds] = useState(0);
-            const [globalCelebration, setGlobalCelebration] = useState(null);
 
             useEffect(() => {
-                const initAuth = async () => {
-                    try {
-                        const unsubscribe = auth.onAuthStateChanged(async (u) => {
-                            if (u) setUser(u);
-                            else await auth.signInAnonymously();
-                        });
-                        return () => unsubscribe();
-                    } catch (e) { console.error("Auth init error:", e); }
-                };
-                initAuth();
+                const unsubscribe = auth.onAuthStateChanged(async (u) => {
+                    if (u) setUser(u);
+                    else await auth.signInAnonymously();
+                });
+                return () => unsubscribe();
             }, []);
 
             useEffect(() => {
                 if (!user) return;
                 const unsubPlayers = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players')
-                    .onSnapshot(s => {
-                        const currentPlayers = s.docs.map(d => ({ id: d.id, ...d.data() }));
-                        setPlayers(currentPlayers);
-                        if (gameStep !== 'register' && !currentPlayers.some(p => p.id === user.uid)) {
-                            setGameStep('register');
-                            setSelectedOption(null);
-                            setTempSelectedOption(null);
-                        }
-                    });
-                
+                    .onSnapshot(s => setPlayers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
                 const unsubState = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState')
                     .onSnapshot(s => {
                         if (s.exists) {
                             const data = s.data();
-                            setGameState(data);
-                            if (data.isGameStarted) {
-                                setSelectedOption(null);
-                                setTempSelectedOption(null); 
-                            }
-                            if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
-                                setGlobalCelebration(data.lastWinner);
-                                setTimeout(() => setGlobalCelebration(null), 6000);
-                            }
-                            const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
-                            if (!data.isGameStarted && !allowedStepsBeforeStart.includes(gameStep)) {
-                                setGameStep('register');
+                            // ✨ 檢測題號是否變動，變動則重設使用者狀態 ✨
+                            if (data.currentQuestionIndex !== gameState.currentQuestionIndex) {
                                 setSelectedOption(null);
                                 setTempSelectedOption(null);
+                                setIsCorrectLocked(null);
                             }
+                            setGameState(data);
+                        } else if (isAdmin) {
+                            db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', prizesPool: INITIAL_PRIZES }, { merge: true });
                         }
                     });
                 return () => { unsubPlayers(); unsubState(); };
-            }, [user, isAdmin, gameStep]);
+            }, [user, isAdmin, gameState.currentQuestionIndex]);
 
             useEffect(() => {
                 if (!gameState.phaseStartTime || !gameState.isGameStarted) return;
                 const timer = setInterval(() => {
-                    const diff = Math.floor((Date.now() - gameState.phaseStartTime) / 1000);
-                    setElapsedSeconds(diff);
+                    setElapsedSeconds(Math.floor((Date.now() - gameState.phaseStartTime) / 1000));
                 }, 100);
                 return () => clearInterval(timer);
             }, [gameState.phaseStartTime, gameState.isGameStarted]);
 
-            const currentPhase = useMemo(() => {
-                if (gameState.viewMode === 'final') return 'final';
-                if (elapsedSeconds < 8) return 'question'; 
-                return 'rank'; 
-            }, [elapsedSeconds, gameState.viewMode]);
-
-            useEffect(() => {
-                const isRecent = gameState.countdownStartTime > (Date.now() - 30000);
-                if (gameState.countdownStartTime > 0 && isRecent && gameStep === 'greetings') {
-                    const timer = setInterval(() => {
-                        const diff = Math.max(0, 5 - Math.floor((Date.now() - gameState.countdownStartTime) / 1000));
-                        setLocalCountdown(diff);
-                        if (diff <= 0) { 
-                            clearInterval(timer); 
-                            setTimeout(() => { setGameStep('quiz'); }, 800); 
-                        }
-                    }, 100);
-                    return () => clearInterval(timer);
-                }
-            }, [gameState.countdownStartTime, gameStep]);
-
-            useEffect(() => {
-                if (currentPhase === 'final' && gameStep === 'quiz') setGameStep('leaderboard');
-            }, [currentPhase, gameStep]);
-
-            const sortedPlayers = useMemo(() => {
-                return [...players].sort((a, b) => (b.score - a.score) || (a.timestamp?.seconds - b.timestamp?.seconds));
-            }, [players]);
-
-            const me = useMemo(() => sortedPlayers.find(p => p.id === user?.uid), [sortedPlayers, user]);
-            const myRank = useMemo(() => sortedPlayers.findIndex(p => p.id === user?.uid) + 1, [sortedPlayers, user]);
-            const others = useMemo(() => sortedPlayers.filter(p => p.id !== user?.uid), [sortedPlayers, user]);
-
-            const handleRegister = async (e) => {
-                e.preventDefault();
-                const name = e.target.name.value;
-                const greeting = e.target.greeting.value;
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).set({
-                    name, greeting: greeting.substring(0, 10), score: 0, prize: '', answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                setGameStep('sponsors');
-            };
-
             const handleConfirmAnswer = async () => {
-                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 8) return;
+                if (tempSelectedOption === null || selectedOption !== null) return;
                 const index = tempSelectedOption;
-                setSelectedOption(index); 
-                
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
                 
-                // ✨ 鎖定本地結果 ✨
-                setLastResultCorrect(isCorrect);
+                // ✨ 立即鎖定正確與否，不隨管理員跳題改變 ✨
+                setIsCorrectLocked(isCorrect);
+                setSelectedOption(index); 
                 
-                const newScore = isCorrect ? (me?.score || 0) + 10 : (me?.score || 0);
+                const myCurrentData = players.find(p => p.id === user.uid);
+                const newScore = isCorrect ? (myCurrentData?.score || 0) + 10 : (myCurrentData?.score || 0);
                 
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
                     score: newScore,
@@ -282,165 +179,84 @@
                 });
             };
 
+            const sortedPlayers = useMemo(() => [...players].sort((a, b) => b.score - a.score), [players]);
+            const me = sortedPlayers.find(p => p.id === user?.uid);
+            const myRank = sortedPlayers.findIndex(p => p.id === user?.uid) + 1;
+
             return (
                 <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
-                    <div className="p-4 flex justify-between items-center bg-red-950/80 backdrop-blur-md border-b-2 border-yellow-600/30 shrink-0 z-20 shadow-xl">
-                        <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter italic">
-                           <span className="text-yellow-500 drop-shadow-md">🐎 2026 達豐 & 明定 春酒</span>
-                        </h1>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-900 px-3 py-1 rounded-full border border-yellow-200 font-black uppercase shadow-lg transition-transform active:scale-95">
-                            {isAdmin ? 'User' : 'Admin'}
-                        </button>
+                    <div className="p-4 flex justify-between items-center bg-red-950/80 backdrop-blur-md border-b-2 border-yellow-600/30 shrink-0 z-20">
+                        <h1 className="text-lg font-black italic text-gold">🐎 2026 春酒活動</h1>
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-900 px-3 py-1 rounded-full font-black">{isAdmin ? 'USER' : 'ADMIN'}</button>
                     </div>
 
-                    <div className="flex-grow flex flex-col overflow-y-auto no-scrollbar relative p-4">
+                    <div className="flex-grow overflow-y-auto p-4 no-scrollbar">
                         {isAdmin ? (
-                            <AdminView user={user} players={players} appId={appId} gameState={gameState} sortedPlayers={sortedPlayers} elapsedSeconds={elapsedSeconds} currentPhase={currentPhase} PRIZES={INITIAL_PRIZES} />
+                            <AdminView user={user} players={players} appId={appId} gameState={gameState} sortedPlayers={sortedPlayers} elapsedSeconds={elapsedSeconds} />
                         ) : (
-                            <div className="flex-grow flex flex-col h-full relative">
+                            <div className="h-full flex flex-col">
                                 {gameStep === 'register' && (
-                                    <div className="my-auto space-y-8 animate-in fade-in duration-500 z-10">
-                                        <div className="text-center">
-                                            <div className="bg-gold-gradient w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-4 animate-bounce">
-                                                <Icon name="sparkles" className="text-red-800 w-12 h-12" />
-                                            </div>
-                                            <h2 className="text-4xl font-black text-gold tracking-widest text-shadow-gold uppercase font-serif italic">馬到成功 2026</h2>
-                                        </div>
-                                        <form onSubmit={handleRegister} className="space-y-4 px-4">
-                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="您的姓名" />
-                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="馬年賀詞 (限 10 字)" />
-                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl active:translate-y-1 border-b-4 border-yellow-700 uppercase italic">報名登錄 ➔</button>
+                                    <div className="my-auto space-y-6">
+                                        <div className="text-center font-black text-4xl text-gold italic uppercase">登錄報名</div>
+                                        <form onSubmit={(e) => { e.preventDefault(); setGameStep('greetings'); handleRegister(e); }} className="space-y-4">
+                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none" placeholder="您的姓名" />
+                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none" placeholder="賀詞 (10字)" />
+                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl text-2xl border-b-4 border-yellow-700">確認報名 ➔</button>
                                         </form>
                                     </div>
                                 )}
-
-                                {gameStep === 'sponsors' && (
-                                    <div className="flex-grow flex flex-col h-full space-y-6 animate-in slide-in-from-right z-10 text-center">
-                                        <h2 className="text-3xl font-black text-gold mt-4 tracking-wider italic">感謝贊助商支持</h2>
-                                        <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pb-4">
-                                            {SPONSORS.map((s, i) => (
-                                                <div key={i} className="bg-red-900/40 p-4 rounded-2xl border border-yellow-600/20 flex items-center gap-4 shadow-lg text-left">
-                                                    <div className="bg-gold-gradient p-2 rounded-lg text-red-900"><Icon name="gift" className="w-6 h-6" /></div>
-                                                    <div><div className="font-black text-lg text-yellow-50">{s.name}</div><div className="text-sm text-yellow-200/80">{s.prize}</div></div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-xl shrink-0 mb-4 border-b-4 border-yellow-700">進入備戰大廳 <Icon name="chevron-right" className="inline w-6 h-6" /></button>
-                                    </div>
-                                )}
-
                                 {gameStep === 'greetings' && (
-                                    <div className="flex-grow flex flex-col space-y-4 animate-in fade-in h-full z-10">
-                                        <h2 className="text-2xl font-black text-gold text-center shrink-0 italic underline decoration-yellow-600 tracking-widest">英雄祝福牆</h2>
+                                    <div className="h-full flex flex-col space-y-4">
+                                        <h2 className="text-2xl font-black text-gold text-center italic underline tracking-widest">英雄祝福牆</h2>
                                         <WordCloud words={players} />
-                                        <div className="text-center text-xs text-yellow-200/60 animate-pulse font-bold bg-black/30 py-3 rounded-full italic border border-yellow-600/10">💡 倒數即將開始，請準備搶答！</div>
-                                        {localCountdown !== null && (
-                                            <div className="fixed inset-0 z-50 bg-red-950/98 flex flex-col items-center justify-center animate-in fade-in">
-                                                <div className="text-gold font-black text-9xl animate-ping mb-8 drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]">{localCountdown}</div>
-                                                <div className="text-white text-3xl font-black tracking-widest bg-yellow-600/10 px-10 py-5 rounded-full border-2 border-yellow-500 text-center uppercase">衝刺搶答！</div>
-                                            </div>
-                                        )}
+                                        <div className="text-center animate-pulse text-yellow-500 font-bold italic py-4">等待主辦方啟動搶答...</div>
+                                        {gameState.isGameStarted && <button onClick={() => setGameStep('quiz')} className="py-4 bg-gold-gradient text-red-900 font-black rounded-2xl">進入搶答區！</button>}
                                     </div>
                                 )}
-
                                 {gameStep === 'quiz' && (
-                                    <div className="flex-grow flex flex-col h-full relative">
-                                        <WordCloud words={players} isBackground={true} />
-                                        
-                                        {currentPhase === 'question' ? (
-                                            <div className="flex-grow flex flex-col space-y-4 z-10">
-                                                <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
+                                    <div className="flex flex-col h-full">
+                                        {elapsedSeconds < 8 ? (
+                                            <div className="space-y-6">
+                                                <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30">
                                                     <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
-                                                    <span className="text-gold text-xl italic">第 {gameState.currentQuestionIndex + 1} 題</span>
-                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 6 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 8 - elapsedSeconds)}s</span>
+                                                    <span className="text-gold font-bold">第 {gameState.currentQuestionIndex + 1} 題</span>
+                                                    <span className="text-2xl font-mono">⏱ {Math.max(0, 8 - elapsedSeconds)}s</span>
                                                 </div>
-                                                <div className="quiz-card text-red-950 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
-                                                    <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[gameState.currentQuestionIndex].q}</p>
+                                                <div className="quiz-card text-red-950 p-8 rounded-3xl text-center min-h-[140px] flex items-center justify-center">
+                                                    <p className="text-2xl font-black">{QUESTIONS[gameState.currentQuestionIndex].q}</p>
                                                 </div>
-                                                <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
+                                                <div className="space-y-3">
                                                     {QUESTIONS[gameState.currentQuestionIndex].a.map((ans, i) => (
                                                         <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
-                                                            disabled={selectedOption !== null || elapsedSeconds >= 8}
-                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${selectedOption === i ? 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20' : tempSelectedOption === i ? 'border-yellow-400 bg-red-900/80 ring-2 ring-yellow-500/50 scale-[1.02]' : 'bg-red-950/40 border-yellow-600/30'}`}>
-                                                            <span className="relative z-10"><span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}</span>
-                                                            {tempSelectedOption === i && selectedOption === null && <Icon name="mouse-pointer-2" className="w-5 h-5 text-yellow-400 animate-pulse" />}
+                                                            className={`w-full p-5 border-2 rounded-2xl text-left font-bold ${selectedOption === i ? 'bg-gold-gradient text-red-950' : tempSelectedOption === i ? 'border-yellow-400 bg-red-900' : 'bg-red-950/40 border-yellow-600/20'}`}>
+                                                            {String.fromCharCode(65 + i)}. {ans}
                                                         </button>
                                                     ))}
                                                 </div>
-                                                <div className="h-20 shrink-0 flex items-center justify-center">
-                                                    {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
-                                                        <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
-                                                    )}
-                                                    {selectedOption !== null && (
-                                                        <div className="text-yellow-400 font-black italic animate-pulse flex items-center gap-2 text-xl drop-shadow-md"><Icon name="check-circle" className="w-7 h-7" /> 答案已送出，等待結果...</div>
-                                                    )}
-                                                </div>
+                                                {tempSelectedOption !== null && selectedOption === null && (
+                                                    <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl text-2xl border-b-4 border-yellow-700">確認送出 ➔</button>
+                                                )}
+                                                {selectedOption !== null && <div className="text-center font-bold text-yellow-400 py-4 animate-pulse">答案已鎖定，等候揭曉...</div>}
                                             </div>
                                         ) : (
-                                            <div className="flex-grow flex flex-col space-y-4 z-10 animate-in zoom-in duration-500 overflow-y-auto no-scrollbar pb-10">
-                                                <div className="text-center pt-4"><div className="text-gold text-5xl font-black mb-2 drop-shadow-lg italic tracking-tighter uppercase">英雄戰報</div></div>
-                                                <div className="bg-white/95 rounded-3xl p-6 border-l-8 border-green-500 shadow-xl text-red-900 shrink-0">
-                                                    <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest"><Icon name="check-circle" className="w-4 h-4" /> Correct Answer</div>
+                                            <div className="space-y-6 animate-in zoom-in">
+                                                <div className="text-center pt-4 text-gold text-5xl font-black italic">戰報揭曉</div>
+                                                <div className="bg-white rounded-3xl p-6 shadow-xl text-red-900 border-l-8 border-green-500">
+                                                    <p className="text-xs uppercase font-bold text-green-600">Correct Answer</p>
                                                     <p className="text-2xl font-black italic">{Array.isArray(QUESTIONS[gameState.currentQuestionIndex].correct) ? "以上皆是！" : QUESTIONS[gameState.currentQuestionIndex].a[QUESTIONS[gameState.currentQuestionIndex].correct]}</p>
-                                                    {/* ✨ 修正：使用鎖定的 lastResultCorrect ✨ */}
-                                                    {selectedOption === null ? (
-                                                        <div className="mt-3 text-gray-500 font-bold flex items-center gap-1"><Icon name="alert-circle" className="w-5 h-5" /> 未能及時確認答案...</div>
-                                                    ) : lastResultCorrect ? (
-                                                        <div className="mt-3 text-green-600 font-black flex items-center gap-1 animate-bounce"><Icon name="thumbs-up" className="w-5 h-5" /> 答對了！(+10 分)</div>
-                                                    ) : (
-                                                        <div className="mt-3 text-red-600 font-bold flex items-center gap-1"><Icon name="x-circle" className="w-5 h-5" /> 答錯了！</div>
-                                                    )}
+                                                    {isCorrectLocked ? <div className="mt-3 text-green-600 font-black">✔ 答對了！(+10)</div> : <div className="mt-3 text-red-600 font-black">✘ 答錯了！</div>}
                                                 </div>
-                                                <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
-                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜</h3>
+                                                <div className="bg-red-950/60 rounded-3xl p-4 border border-yellow-600/30">
+                                                    <p className="text-center text-gold font-bold mb-3 italic">當前五強排名</p>
                                                     {sortedPlayers.slice(0, 5).map((p, i) => (
-                                                        <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
-                                                            <div className="flex items-center gap-3">
-                                                                <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${i === 0 ? 'bg-gold-gradient text-red-900 shadow-lg' : 'bg-red-800'}`}>{i+1}</span>
-                                                                <span className="font-bold">{p.name}</span>
-                                                            </div>
-                                                            <span className="font-black text-gold italic">{p.score}</span>
+                                                        <div key={i} className="flex justify-between p-2 bg-black/20 rounded-lg mb-1 text-sm">
+                                                            <span>{i+1}. {p.name}</span><span className="text-gold font-bold">{p.score}</span>
                                                         </div>
                                                     ))}
                                                 </div>
-                                                <p className="text-center text-yellow-400 font-bold animate-pulse text-lg italic py-4">等待主辦方切換下一題...</p>
+                                                <div className="text-center text-yellow-500 animate-bounce">請等待主辦方切換下一題...</div>
                                             </div>
                                         )}
-                                    </div>
-                                )}
-
-                                {gameStep === 'leaderboard' && (
-                                    <div className="flex flex-col space-y-4 h-full animate-in slide-in-from-bottom z-10">
-                                        <h2 className="text-4xl font-black text-gold text-center drop-shadow-md py-4 tracking-widest uppercase italic font-serif">最終英雄榜</h2>
-                                        {me && (
-                                            <div className="bg-gold-gradient text-red-950 p-6 rounded-3xl border-4 border-white shadow-2xl mb-4 transform scale-105 shrink-0">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-16 h-16 rounded-full bg-red-800 text-white flex items-center justify-center font-black text-3xl border-2 border-white shadow-lg">{myRank}</div>
-                                                        <div><div className="font-black text-3xl leading-tight tracking-tighter">{me.name}</div><div className="text-sm font-bold opacity-80 mt-1 italic">"{me.greeting}"</div></div>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <div className="text-4xl font-black italic">{me.score}</div>
-                                                        <div className="text-[10px] uppercase font-black opacity-50">Points</div>
-                                                    </div>
-                                                </div>
-                                                {me.prize && <div className="mt-4 pt-3 border-t border-red-950/10 text-center bg-red-800 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-sm italic animate-pulse">🎉 榮獲獎項：{me.prize}</div>}
-                                            </div>
-                                        )}
-                                        <div className="flex-grow bg-black/30 rounded-3xl p-3 border-2 border-yellow-600/10 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
-                                            {others.length > 0 ? others.map((p) => {
-                                                const r = sortedPlayers.findIndex(x => x.id === p.id) + 1;
-                                                return (
-                                                    <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 shadow-sm transition-all active:scale-[0.98]">
-                                                        <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${r <= 3 ? 'bg-gold-gradient text-red-900 shadow-md' : 'bg-red-950/50'}`}>{r}</div>
-                                                            <div><div className="font-bold text-lg">{p.name}</div><div className="text-[10px] text-yellow-200/40 italic">"{p.greeting}"</div></div>
-                                                        </div>
-                                                        <div className="text-right"><div className="font-black text-xl text-gold">{p.score}</div></div>
-                                                    </div>
-                                                );
-                                            }) : <div className="py-20 text-center opacity-30 italic text-yellow-50 font-black tracking-widest animate-pulse uppercase italic">結算中，請稍候...</div>}
-                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -450,267 +266,87 @@
             );
         };
 
-        const AdminView = ({ user, players, appId, gameState, sortedPlayers, elapsedSeconds, currentPhase, PRIZES }) => {
-            const [selectedId, setSelectedId] = useState('');
-            const [spinning, setSpinning] = useState(false);
-            const [rot, setRot] = useState(0);
-            const [pendingResult, setPendingResult] = useState(null); 
-            const [activeTab, setActiveTab] = useState('control'); 
-            const [selectedQuestionTab, setSelectedQuestionTab] = useState(0); 
-            const [confirmReset, setConfirmReset] = useState(false); 
-            const prizesPool = gameState.prizesPool || PRIZES;
+        const AdminView = ({ players, appId, gameState, sortedPlayers, elapsedSeconds }) => {
+            const [selectedQTab, setSelectedQTab] = useState(0);
+            const [confirmReset, setConfirmReset] = useState(false);
 
-            const handleResetGame = async () => {
-                if (!confirmReset) {
-                    setConfirmReset(true);
-                    setTimeout(() => setConfirmReset(false), 3000); 
-                    return;
+            const handleNext = async () => {
+                const nextIdx = gameState.currentQuestionIndex + 1;
+                if (nextIdx >= QUESTIONS.length) {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ viewMode: 'final' });
+                } else {
+                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ currentQuestionIndex: nextIdx, phaseStartTime: Date.now() });
                 }
-                try {
-                    const batch = db.batch();
-                    players.forEach(p => { batch.delete(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(p.id)); });
-                    batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { 
-                        countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null 
-                    }, { merge: true });
-                    await batch.commit();
-                    setActiveTab('control');
-                    setConfirmReset(false);
-                    setSelectedId('');
-                } catch (e) { console.error("Reset failed:", e); }
             };
 
-            const startGlobalCountdown = async () => {
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ countdownStartTime: Date.now(), isGameStarted: true, phaseStartTime: Date.now() + 5000 }, { merge: true });
-            };
-
-            const handleNextQuestion = async () => {
-                if (gameState.currentQuestionIndex >= QUESTIONS.length - 1) {
-                    await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ viewMode: 'final' }, { merge: true });
-                    return;
-                }
-                const batch = db.batch();
-                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { currentQuestionIndex: gameState.currentQuestionIndex + 1, phaseStartTime: Date.now(), viewMode: 'question' }, { merge: true });
-                await batch.commit();
-                setSelectedQuestionTab(gameState.currentQuestionIndex + 1); 
-            };
-
-            const handleSpin = async () => {
-                if(!selectedId || spinning || prizesPool.length === 0) return;
-                setSpinning(true);
-                const pIdx = Math.floor(Math.random() * prizesPool.length);
-                const won = prizesPool[pIdx];
-                const segAngle = 360 / prizesPool.length;
-                const targetAngle = 360 - (pIdx * segAngle) - (segAngle / 2);
-                const newRot = rot + 1800 + targetAngle - (rot % 360);
-                setRot(newRot);
-                setTimeout(() => {
-                    setSpinning(false);
-                    const winner = players.find(p => p.id === selectedId);
-                    setPendingResult({ id: selectedId, name: winner.name, prize: won, poolIndex: pIdx });
-                }, 3500);
-            };
-
-            const confirmPrize = async () => {
-                if (!pendingResult) return;
-                const { id, name, prize, poolIndex } = pendingResult;
-                const batch = db.batch();
-                batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(id), { prize: prize });
-                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { prizesPool: prizesPool.filter((_, idx) => idx !== poolIndex), lastWinner: { name, prize, timestamp: Date.now() } }, { merge: true });
-                await batch.commit();
-                setPendingResult(null);
-                setSelectedId('');
-            };
-
-            const TABS = [
-                { id: 'control', name: '題目詳情', icon: 'book-open' },
-                { id: 'prizes', name: '抽獎轉盤', icon: 'disc' }
-            ];
+            const stats = useMemo(() => {
+                const counts = [0, 0, 0, 0];
+                players.forEach(p => {
+                    const choice = p.answers?.[selectedQTab];
+                    if (choice !== undefined && choice !== null) counts[choice]++;
+                });
+                const total = counts.reduce((a, b) => a + b, 0);
+                return counts.map(c => total > 0 ? Math.round((c / total) * 100) : 0);
+            }, [players, selectedQTab]);
 
             return (
-                <div className="flex flex-col h-full overflow-hidden">
-                    <div className="bg-red-950 p-4 rounded-3xl border-2 border-yellow-600/30 shadow-2xl mb-4 shrink-0">
-                        {!gameState.isGameStarted ? (
-                            <div className="flex items-center justify-between">
-                                <div className="text-xl font-black text-gold italic">{players.length} 位英雄已登錄</div>
-                                <button onClick={startGlobalCountdown} className="px-6 py-2 rounded-xl font-black bg-gold-gradient text-red-950 shadow-lg border-b-4 border-yellow-700 active:translate-y-1">🚀 啟動比賽</button>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-xs bg-gold-gradient text-red-950 px-2 py-0.5 rounded-full font-black uppercase">LIVE</span>
-                                        <span className="text-gold font-black text-xl italic tracking-tighter">Q{gameState.currentQuestionIndex + 1} ({currentPhase === 'question' ? '答題中' : '戰報展示'})</span>
-                                    </div>
-                                    <div className="text-2xl font-mono text-white bg-black/40 px-3 py-1 rounded-lg border border-white/10 shadow-inner">
-                                        ⏱ {currentPhase === 'question' ? Math.max(0, 8 - elapsedSeconds) : 0}s
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button onClick={handleNextQuestion} className="flex-1 py-3 bg-gold-gradient text-red-900 rounded-xl font-black text-lg shadow-lg border-b-4 border-yellow-700 active:translate-y-1 transition-all">{gameState.currentQuestionIndex >= QUESTIONS.length - 1 ? '🏆 結束賽制' : '➔ 下一題'}</button>
-                                    <button onClick={handleResetGame} className={`px-4 py-3 rounded-xl text-xs font-black border-b-4 transition-all ${confirmReset ? 'bg-yellow-500 text-red-900 border-yellow-700 animate-pulse shadow-[0_0_10px_yellow]' : 'bg-red-700 text-white border-red-900 shadow-lg'}`}><Icon name="refresh-cw" className={`w-3 h-3 inline mr-1 ${confirmReset ? 'animate-spin' : ''}`} />{confirmReset ? '確定重置？' : '重置'}</button>
-                                </div>
-                            </div>
-                        )}
+                <div className="space-y-4">
+                    <div className="bg-red-950 p-4 rounded-3xl border-2 border-yellow-600/30">
+                        <div className="flex justify-between items-center mb-4">
+                            <span className="text-gold font-black italic">Q{gameState.currentQuestionIndex + 1} LIVE</span>
+                            <span className="text-2xl font-mono bg-black/40 px-3 rounded-lg">⏱ {Math.max(0, 8 - elapsedSeconds)}s</span>
+                        </div>
+                        <div className="flex gap-2">
+                            <button onClick={handleNext} className="flex-1 py-3 bg-gold-gradient text-red-900 font-black rounded-xl border-b-4 border-yellow-700">下一題 ➔</button>
+                            <button onClick={() => { if(confirmReset) { db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').get().then(s => s.docs.forEach(d => d.ref.delete())); db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').set({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', prizesPool: INITIAL_PRIZES }); setConfirmReset(false); } else { setConfirmReset(true); setTimeout(()=>setConfirmReset(false), 3000); } }} className="px-4 py-3 bg-red-700 rounded-xl text-xs font-bold">{confirmReset ? '確定？' : '重置'}</button>
+                        </div>
+                        {!gameState.isGameStarted && <button onClick={() => db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState').update({ isGameStarted: true, phaseStartTime: Date.now() })} className="w-full mt-2 py-4 bg-green-600 rounded-xl font-bold">啟動比賽</button>}
                     </div>
 
-                    <div className="flex-grow grid grid-cols-1 md:grid-cols-12 gap-4 overflow-hidden mb-20">
-                        <div className="md:col-span-8 flex flex-col overflow-hidden">
-                            <div className="flex bg-black/40 p-1 rounded-2xl mb-4 border border-yellow-600/20 shrink-0">
-                                {TABS.map(t => (
-                                    <button key={t.id} onClick={() => setActiveTab(t.id)} className={`flex-1 flex flex-col items-center py-2 rounded-xl transition-all ${activeTab === t.id ? 'bg-gold-gradient text-red-950 font-black shadow-lg scale-105' : 'text-yellow-500/60 opacity-60'}`}><Icon name={t.icon} className="w-5 h-5 mb-1" /><span className="text-[10px] uppercase font-bold">{t.name}</span></button>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex flex-wrap gap-1 mb-4">
+                                {QUESTIONS.map((_, i) => (
+                                    <button key={i} onClick={() => setSelectedQTab(i)} className={`w-8 h-8 rounded-full font-bold text-xs ${selectedQTab === i ? 'bg-gold-gradient text-red-900' : i < gameState.currentQuestionIndex ? 'bg-green-600' : 'bg-red-900/40'}`}>{i+1}</button>
                                 ))}
                             </div>
-
-                            <div className="flex-grow overflow-y-auto no-scrollbar pb-10">
-                                {activeTab === 'control' && (
-                                    <div className="space-y-4 animate-in fade-in duration-300">
-                                        <div className="flex flex-wrap gap-2 px-1 mb-2">
-                                            {QUESTIONS.map((_, idx) => {
-                                                const isCompleted = idx < gameState.currentQuestionIndex;
-                                                const isLive = idx === gameState.currentQuestionIndex;
-                                                const isSelected = selectedQuestionTab === idx;
-                                                let tabStyle = "bg-red-950/40 border-yellow-600/20 text-yellow-500/60";
-                                                if (isCompleted) tabStyle = "bg-green-gradient text-white border-white/30 shadow-md";
-                                                else if (isLive) tabStyle = "bg-gold-gradient text-red-950 border-white shadow-[0_0_10px_gold]";
-                                                return (
-                                                    <button key={idx} onClick={() => setSelectedQuestionTab(idx)} className={`w-12 h-12 rounded-full shrink-0 font-black transition-all border-2 flex items-center justify-center relative ${tabStyle} ${isSelected ? 'ring-4 ring-yellow-400/50 scale-110 z-10' : 'opacity-80'}`}><span className="text-lg">{idx + 1}</span>{isCompleted && (<div className="absolute -top-1 -right-1 bg-green-950 rounded-full p-0.5 border border-white"><Icon name="check" className="w-2.5 h-2.5 text-white" /></div>)}</button>
-                                                );
-                                            })}
+                            <div className="bg-white text-red-950 p-4 rounded-2xl shadow-lg mb-4 text-xs">
+                                <p className="font-black mb-2">{QUESTIONS[selectedQTab].q}</p>
+                                <div className="grid grid-cols-4 gap-2 text-center">
+                                    {stats.map((s, i) => (
+                                        <div key={i} className="bg-red-50 p-1 rounded border border-red-100">
+                                            <div className="font-bold text-red-400">{String.fromCharCode(65 + i)}</div>
+                                            <div className="font-black">{s}%</div>
                                         </div>
-
-                                        {selectedQuestionTab !== null && (
-                                            <div className="space-y-4">
-                                                <div className="bg-white/95 rounded-3xl p-6 shadow-xl text-red-950 border-b-4 border-yellow-600/30">
-                                                    <div className="flex items-center gap-2 mb-2 text-gold font-bold uppercase text-[10px] tracking-widest"><Icon name="help-circle" className="w-3 h-3 text-red-700" /> Question Context</div>
-                                                    <p className="text-lg font-black italic mb-4 leading-snug">{QUESTIONS[selectedQuestionTab].q}</p>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {QUESTIONS[selectedQuestionTab].a.map((ans, i) => {
-                                                            const correctRef = QUESTIONS[selectedQuestionTab].correct;
-                                                            const isAnswerCorrect = Array.isArray(correctRef) ? correctRef.includes(i) : correctRef === i;
-                                                            return (
-                                                                <div key={i} className={`p-3 rounded-xl text-[11px] font-bold border ${isAnswerCorrect ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60'}`}><span className="opacity-50 mr-1">{String.fromCharCode(65 + i)}.</span> {ans}</div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-red-950/60 rounded-3xl overflow-hidden border border-yellow-600/20 shadow-2xl">
-                                                    <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex justify-between"><span>答題詳情 (Q{selectedQuestionTab+1})</span></div>
-                                                    <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center border-b border-white/5">
-                                                        {(() => {
-                                                            const stats = [0, 0, 0, 0];
-                                                            players.forEach(p => { 
-                                                                const choice = p.answers?.[selectedQuestionTab.toString()] ?? p.answers?.[selectedQuestionTab];
-                                                                if(choice !== undefined && choice !== null) stats[choice]++; 
-                                                            });
-                                                            const total = stats.reduce((a, b) => a + b, 0);
-                                                            return stats.map((s, i) => (
-                                                                <div key={i} className="py-1">
-                                                                    <div className="text-[9px] text-yellow-500/60 uppercase">{String.fromCharCode(65 + i)}</div>
-                                                                    <div className="text-gold font-black text-sm">{total > 0 ? Math.round((s/total)*100) : 0}%</div>
-                                                                </div>
-                                                            ));
-                                                        })()}
-                                                    </div>
-                                                    <div className="max-h-64 overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/20">
-                                                        {players.map(p => {
-                                                            const userChoice = p.answers?.[selectedQuestionTab.toString()] ?? p.answers?.[selectedQuestionTab];
-                                                            const hasChoice = userChoice !== undefined && userChoice !== null;
-                                                            const correctRef = QUESTIONS[selectedQuestionTab].correct;
-                                                            const isCorrectChoice = hasChoice && (Array.isArray(correctRef) ? correctRef.includes(userChoice) : userChoice === correctRef);
-                                                            
-                                                            return (
-                                                                <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs transition-colors hover:bg-white/5">
-                                                                    <div className="font-bold flex items-center gap-2">
-                                                                        <div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div>
-                                                                        <span className="truncate max-w-[120px]">{p.name}</span>
-                                                                    </div>
-                                                                    <div className={`font-black italic text-right ${hasChoice && isCorrectChoice ? 'text-green-400 drop-shadow-md' : 'text-yellow-500/30'}`}>
-                                                                        {hasChoice ? `選 ${String.fromCharCode(65 + userChoice)}` : '等待中...'}
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="bg-red-950/60 rounded-2xl overflow-hidden text-[10px]">
+                                <div className="bg-gold-gradient p-2 text-red-950 font-black">答題詳情 (Q{selectedQTab+1})</div>
+                                <div className="max-h-40 overflow-y-auto no-scrollbar">
+                                    {players.map(p => {
+                                        const choice = p.answers?.[selectedQTab];
+                                        return (
+                                            <div key={p.id} className="flex justify-between p-2 border-b border-white/5">
+                                                <span className="font-bold">{p.name}</span>
+                                                <span className={choice !== undefined ? 'text-green-400' : 'text-yellow-500/30'}>{choice !== undefined ? `選 ${String.fromCharCode(65 + choice)}` : '等待中...'}</span>
                                             </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {activeTab === 'prizes' && (
-                                    <div className="flex flex-col items-center animate-in fade-in duration-300">
-                                        <div className="relative w-64 h-64 mb-6 flex items-center justify-center">
-                                            <div className="absolute inset-0 bg-yellow-400/10 rounded-full blur-2xl animate-pulse"></div>
-                                            <svg className="w-full h-full drop-shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-transform duration-[3500ms] ease-out relative z-10" style={{ transform: `rotate(${rot}deg)`, width: '240px', height: '240px' }} viewBox="0 0 300 300">
-                                                {prizesPool.map((p, i) => {
-                                                    const colors = ['#991b1b', '#7f1d1d', '#b45309', '#92400e']; 
-                                                    const angle = 360 / prizesPool.length;
-                                                    const midAngle = (i * angle) + (angle / 2) - 90;
-                                                    const textX = 150 + 95 * Math.cos(midAngle * Math.PI / 180);
-                                                    const textY = 150 + 95 * Math.sin(midAngle * Math.PI / 180);
-                                                    const startA = i * angle;
-                                                    const endA = (i + 1) * angle;
-                                                    const x1 = 150 + 150 * Math.cos((startA - 90) * Math.PI / 180);
-                                                    const y1 = 150 + 150 * Math.sin((startA - 90) * Math.PI / 180);
-                                                    const x2 = 150 + 150 * Math.cos((endA - 90) * Math.PI / 180);
-                                                    const y2 = 150 + 150 * Math.sin((endA - 90) * Math.PI / 180);
-                                                    return (
-                                                        <g key={i}>
-                                                            <path d={`M 150 150 L ${x1} ${y1} A 150 150 0 0 1 ${x2} ${y2} Z`} fill={colors[i % colors.length]} stroke="#d4af37" strokeWidth="1" />
-                                                            <text x={textX} y={textY} fill="white" fontSize={prizesPool.length > 8 ? "10" : "14"} fontWeight="900" textAnchor="middle" dominantBaseline="middle" transform={`rotate(${midAngle + 90}, ${textX}, ${textY})`} style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>{p}</text>
-                                                        </g>
-                                                    );
-                                                })}
-                                            </svg>
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-10 h-10 bg-gold-gradient z-20 border-2 border-white shadow-2xl" style={{ clipPath: 'polygon(50% 100%, 0% 0%, 100% 0%)' }}></div>
-                                        </div>
-                                        <div className="w-full space-y-4 px-2">
-                                            <select className="w-full p-4 bg-red-950 border-2 border-yellow-600 rounded-2xl text-lg font-black text-white outline-none appearance-none shadow-xl transition-all focus:border-yellow-400" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
-                                                <option value="">-- 選擇得獎英雄 --</option>
-                                                {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
-                                            </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
-                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時戰績排行</span></div>
-                            <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
-                                {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
-                                    <div key={p.id} className={`flex items-center justify-between p-3.5 transition-colors ${p.id === user?.uid ? 'bg-yellow-600/20' : ''}`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-950 shadow-[0_0_12px_gold]' : i === 1 ? 'bg-slate-300 text-red-950' : i === 2 ? 'bg-amber-600 text-red-950 shadow-md' : 'bg-red-900 text-white/50'}`}>{i + 1}</div>
-                                            <div className="flex flex-col"><span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>{p.prize && <span className="text-[9px] text-yellow-400 font-black italic animate-in slide-in-from-left-1 duration-700">🧧 {p.prize}</span>}</div>
-                                        </div>
-                                        <div className="text-right"><div className="text-gold font-black text-xl italic tabular-nums">{p.score}</div></div>
-                                    </div>
-                                )) : <div className="p-12 text-center text-white/20 italic text-xs uppercase tracking-widest animate-pulse font-black">Waiting for heroes...</div>}
-                            </div>
-                        </div>
-                    </div>
-
-                    {pendingResult && (
-                        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-                            <div className="bg-white rounded-[60px] w-full max-w-sm overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.8)] border-8 border-yellow-500 transform animate-in zoom-in duration-500">
-                                <div className="bg-gold-gradient p-8 text-center relative shadow-lg"><div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 p-4 rounded-full border-4 border-white shadow-2xl"><Icon name="trophy" className="text-yellow-400 w-10 h-10" /></div><h2 className="text-red-950 font-black text-3xl mt-4 italic tracking-tighter">獲獎驗證！</h2></div>
-                                <div className="p-10 text-center space-y-8 bg-white">
-                                    <div><p className="text-gray-400 font-bold text-sm uppercase italic">得獎英雄</p><p className="text-gray-900 font-black text-4xl tracking-tighter">{pendingResult.name}</p></div>
-                                    <div className="py-6 px-4 bg-red-50 rounded-[30px] border-4 border-red-100 shadow-inner">
-                                        <p className="text-red-500 font-bold text-xs uppercase mb-1 italic">確認核發獎項</p>
-                                        <p className="text-red-900 font-black text-3xl italic tracking-tight">{pendingResult.prize}</p>
-                                    </div>
-                                    <div className="flex gap-3">
-                                        <button onClick={() => { setPendingResult(null); setSelectedId(''); }} className="flex-1 py-4 text-gray-400 font-bold hover:text-red-500 text-sm italic">重抽</button>
-                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
-                                    </div>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         </div>
-                    )}
+                        <div className="bg-red-950/40 rounded-3xl border border-yellow-600/20 overflow-hidden h-fit">
+                            <div className="bg-gold-gradient p-2 text-red-950 font-black text-xs">即時戰績排行</div>
+                            <div className="max-h-60 overflow-y-auto no-scrollbar">
+                                {sortedPlayers.map((p, i) => (
+                                    <div key={p.id} className="flex justify-between p-3 border-b border-white/5 text-sm">
+                                        <span>{i+1}. {p.name}</span><span className="text-gold font-bold">{p.score}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             );
         };

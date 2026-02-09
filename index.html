@@ -285,7 +285,7 @@
                 const name = e.target.name.value;
                 const greeting = e.target.greeting.value;
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).set({
-                    name, greeting: greeting.substring(0, 10), score: 0, prize: '', lastChoice: null, lastChoiceQIndex: -1, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    name, greeting: greeting.substring(0, 10), score: 0, prize: '', answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 setGameStep('sponsors');
             };
@@ -294,26 +294,18 @@
                 if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 8) return;
                 const index = tempSelectedOption;
                 setSelectedOption(index); 
+                
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
+                
                 const newScore = isCorrect ? (me?.score || 0) + 10 : (me?.score || 0);
+                
+                // ✨ 重點修正：將答案儲存在 answers 物件中，防止被後面的題目覆蓋 ✨
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
                     score: newScore,
-                    lastChoice: index,
-                    lastChoiceQIndex: gameState.currentQuestionIndex 
+                    [`answers.${gameState.currentQuestionIndex}`]: index 
                 });
             };
-
-            const choiceStats = useMemo(() => {
-                const stats = [0, 0, 0, 0];
-                players.forEach(p => { 
-                    if (p.lastChoiceQIndex === gameState.currentQuestionIndex && p.lastChoice !== null && p.lastChoice !== undefined) {
-                        stats[p.lastChoice]++; 
-                    }
-                });
-                const total = stats.reduce((a, b) => a + b, 0);
-                return stats.map(s => total > 0 ? Math.round((s / total) * 100) : 0);
-            }, [players, gameState.currentQuestionIndex]);
 
             return (
                 <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
@@ -328,7 +320,7 @@
 
                     <div className="flex-grow flex flex-col overflow-y-auto no-scrollbar relative p-4">
                         {isAdmin ? (
-                            <AdminView user={user} players={players} appId={appId} gameState={gameState} sortedPlayers={sortedPlayers} choiceStats={choiceStats} elapsedSeconds={elapsedSeconds} currentPhase={currentPhase} PRIZES={INITIAL_PRIZES} />
+                            <AdminView user={user} players={players} appId={appId} gameState={gameState} sortedPlayers={sortedPlayers} elapsedSeconds={elapsedSeconds} currentPhase={currentPhase} PRIZES={INITIAL_PRIZES} />
                         ) : (
                             <div className="flex-grow flex flex-col h-full relative">
                                 {gameStep === 'register' && (
@@ -505,7 +497,7 @@
             );
         };
 
-        const AdminView = ({ user, players, appId, gameState, sortedPlayers, choiceStats, elapsedSeconds, currentPhase, PRIZES }) => {
+        const AdminView = ({ user, players, appId, gameState, sortedPlayers, elapsedSeconds, currentPhase, PRIZES }) => {
             const [selectedId, setSelectedId] = useState('');
             const [spinning, setSpinning] = useState(false);
             const [rot, setRot] = useState(0);
@@ -654,7 +646,10 @@
                                                     <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center border-b border-white/5">
                                                         {(() => {
                                                             const stats = [0, 0, 0, 0];
-                                                            players.forEach(p => { if(p.lastChoiceQIndex === selectedQuestionTab) stats[p.lastChoice]++; });
+                                                            players.forEach(p => { 
+                                                                const choice = p.answers?.[selectedQuestionTab];
+                                                                if(choice !== undefined && choice !== null) stats[choice]++; 
+                                                            });
                                                             const total = stats.reduce((a, b) => a + b, 0);
                                                             return stats.map((s, i) => (
                                                                 <div key={i} className="py-1">
@@ -666,16 +661,18 @@
                                                     </div>
                                                     <div className="max-h-64 overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/20">
                                                         {players.map(p => {
-                                                            const isCorrectChoice = (QUESTIONS[selectedQuestionTab].correct === p.lastChoice) || (Array.isArray(QUESTIONS[selectedQuestionTab].correct) && QUESTIONS[selectedQuestionTab].correct.includes(p.lastChoice));
-                                                            const hasChoiceOnThisTab = (p.lastChoiceQIndex === selectedQuestionTab);
+                                                            const userChoice = p.answers?.[selectedQuestionTab];
+                                                            const hasChoice = userChoice !== undefined && userChoice !== null;
+                                                            const isCorrectChoice = hasChoice && ((QUESTIONS[selectedQuestionTab].correct === userChoice) || (Array.isArray(QUESTIONS[selectedQuestionTab].correct) && QUESTIONS[selectedQuestionTab].correct.includes(userChoice)));
+                                                            
                                                             return (
                                                                 <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs transition-colors hover:bg-white/5">
                                                                     <div className="font-bold flex items-center gap-2">
-                                                                        <div className={`w-2 h-2 rounded-full ${hasChoiceOnThisTab ? 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div>
+                                                                        <div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div>
                                                                         <span className="truncate max-w-[120px]">{p.name}</span>
                                                                     </div>
-                                                                    <div className={`font-black italic text-right ${hasChoiceOnThisTab && isCorrectChoice ? 'text-green-400 drop-shadow-md' : 'text-yellow-500/30'}`}>
-                                                                        {hasChoiceOnThisTab ? `選 ${String.fromCharCode(65 + p.lastChoice)}` : '等待中...'}
+                                                                    <div className={`font-black italic text-right ${hasChoice && isCorrectChoice ? 'text-green-400 drop-shadow-md' : 'text-yellow-500/30'}`}>
+                                                                        {hasChoice ? `選 ${String.fromCharCode(65 + userChoice)}` : '等待中...'}
                                                                     </div>
                                                                 </div>
                                                             );
@@ -719,7 +716,7 @@
                                                 <option value="">-- 選擇得獎英雄 --</option>
                                                 {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                                             </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
+                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
                                         </div>
                                     </div>
                                 )}
@@ -754,7 +751,7 @@
                                     </div>
                                     <div className="flex gap-3">
                                         <button onClick={() => { setPendingResult(null); setSelectedId(''); }} className="flex-1 py-4 text-gray-400 font-bold hover:text-red-500 text-sm italic">重抽</button>
-                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
+                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
                                     </div>
                                 </div>
                             </div>

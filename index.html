@@ -22,21 +22,28 @@
         body {
             height: var(--app-height);
             margin: 0;
+            /* 背景維持深紅漸層 */
             background: radial-gradient(circle at center, #991b1b 0%, #7f1d1d 50%, #450a0a 100%);
             overflow: hidden;
             touch-action: manipulation;
         }
-        .bg-gold-gradient { background: linear-gradient(135deg, #d4af37 0%, #f9e498 50%, #b8860b 100%); }
+        /* ✨ 調整金色漸層，使其更亮更飽和 ✨ */
+        .bg-gold-gradient { background: linear-gradient(180deg, #f9e498 0%, #d4af37 50%, #b8860b 100%); }
         .bg-green-gradient { background: linear-gradient(135deg, #15803d 0%, #22c55e 50%, #166534 100%); }
-        .text-gold { background: linear-gradient(to bottom, #f9e498 0%, #d4af37 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-gold { 
+            background: linear-gradient(to bottom, #fef08a 0%, #f9e498 40%, #d4af37 100%); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+        }
         .border-gold { border-color: #d4af37; }
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-10px) rotate(1.5deg); } }
         .animate-float { animation: float 4s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .text-shadow-gold { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
-        .quiz-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.2); }
-        .progress-bar { transition: width 0.1s linear; background: linear-gradient(90deg, #b8860b, #f9e498); }
+        .text-shadow-gold { text-shadow: 0 2px 10px rgba(212, 175, 55, 0.6); }
+        /* 題目卡片維持白色 */
+        .quiz-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+        .progress-bar { transition: width 0.1s linear; background: linear-gradient(90deg, #b8860b, #fef08a); }
         @keyframes confetti { 0% { transform: translateY(-100%) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
         .confetti { position: absolute; width: 8px; height: 8px; animation: confetti 4s linear infinite; }
     </style>
@@ -135,7 +142,7 @@
                             );
                         })
                     ) : (
-                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold">等待參賽者登錄中...</p></div>
+                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold text-yellow-500/50">等待參賽者登錄中...</p></div>
                     )}
                 </div>
             );
@@ -147,7 +154,6 @@
             const [players, setPlayers] = useState([]);
             const [gameState, setGameState] = useState({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question' });
             
-            // ✨ 鎖定 UI 顯示的題目內容，防止洩題 ✨
             const [displayQuestionIndex, setDisplayQuestionIndex] = useState(0); 
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
@@ -177,15 +183,12 @@
                         if (s.exists) {
                             const data = s.data();
                             setGameState(data);
-
                             const diff = (Date.now() - data.phaseStartTime) / 1000;
                             
-                            // ✨ 修正跳轉下一題邏輯：如果剛切換題目 (1秒內) 且遊戲進行中，強導回 quiz 介面 ✨
                             if (data.isGameStarted && diff < 1 && data.viewMode !== 'final') {
                                 setGameStep('quiz');
                             }
 
-                            // ✨ 鎖定題目索引更新 ✨
                             if (diff < 8 || data.viewMode === 'final') {
                                 setDisplayQuestionIndex(data.currentQuestionIndex);
                                 setSelectedOption(null);
@@ -207,8 +210,6 @@
                 const timer = setInterval(() => {
                     const diff = (Date.now() - gameState.phaseStartTime) / 1000;
                     setElapsedSeconds(diff);
-                    
-                    // ✨ 自動跳轉英雄榜：第 10 秒開始 ✨
                     if (gameStep === 'quiz' && diff >= 10 && gameState.viewMode !== 'final') {
                         setGameStep('leaderboard');
                     }
@@ -218,9 +219,9 @@
 
             const currentPhase = useMemo(() => {
                 if (gameState.viewMode === 'final') return 'final';
-                if (elapsedSeconds < 8) return 'answering'; // 答題 (0-8s)
-                if (elapsedSeconds < 10) return 'reveal';    // 揭曉 (8-10s)
-                return 'rank';                               // 榜單
+                if (elapsedSeconds < 8) return 'answering';
+                if (elapsedSeconds < 10) return 'reveal';
+                return 'rank';
             }, [elapsedSeconds, gameState.viewMode]);
 
             useEffect(() => {
@@ -256,7 +257,6 @@
                 if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds >= 8) return;
                 const currentIdx = gameState.currentQuestionIndex;
                 const index = tempSelectedOption;
-                
                 setSelectedOption(index); 
                 const correctRef = QUESTIONS[currentIdx].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
@@ -276,11 +276,12 @@
 
             return (
                 <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans bg-red-950">
-                    <div className="p-4 flex justify-between items-center bg-red-950/80 backdrop-blur-md border-b-2 border-yellow-600/30 shrink-0 z-20 shadow-xl">
+                    {/* ✨ 導航列配色優化 ✨ */}
+                    <div className="p-4 flex justify-between items-center bg-red-950/90 backdrop-blur-md border-b-2 border-yellow-700/50 shrink-0 z-20 shadow-xl">
                         <h1 className="text-lg font-black flex items-center gap-2 italic">
-                           <span className="text-yellow-500 drop-shadow-md">🐎 2026 達豐&明定 春酒活動</span>
+                           <span className="text-gold drop-shadow-md">🐎 2026 達豐&明定 春酒活動</span>
                         </h1>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-900 px-3 py-1 rounded-full border border-yellow-200 font-black uppercase shadow-lg transition-transform active:scale-95">
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-950 px-3 py-1 rounded-full font-black uppercase shadow-lg transition-transform active:scale-95 border border-yellow-200/50">
                             {isAdmin ? 'User' : 'Admin'}
                         </button>
                     </div>
@@ -293,15 +294,17 @@
                                 {gameStep === 'register' && (
                                     <form onSubmit={handleRegister} className="my-auto space-y-8 animate-in fade-in duration-500 z-10">
                                         <div className="text-center">
-                                            <div className="bg-gold-gradient w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-4 animate-bounce">
-                                                <Icon name="sparkles" className="text-red-800 w-12 h-12" />
+                                            {/* ✨ 註冊頁面 Icon 配色調整 ✨ */}
+                                            <div className="bg-gold-gradient w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-6 animate-bounce">
+                                                <Icon name="sparkles" className="text-red-900 w-12 h-12" />
                                             </div>
-                                            <h2 className="text-4xl font-black text-gold tracking-widest uppercase italic">馬到成功 2026</h2>
+                                            <h2 className="text-4xl font-black text-gold tracking-widest uppercase italic font-serif">馬到成功 2026</h2>
                                         </div>
                                         <div className="space-y-4 px-4">
-                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="您的姓名" />
-                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="馬年賀詞" />
-                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl active:translate-y-1 border-b-4 border-yellow-700 uppercase italic">報名登錄 ➔</button>
+                                            {/* ✨ 輸入框邊框改為金色 ✨ */}
+                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600/80 outline-none text-xl shadow-inner focus:border-yellow-400 transition-all text-yellow-100 placeholder:text-yellow-600/50" placeholder="您的姓名" />
+                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600/80 outline-none text-xl shadow-inner focus:border-yellow-400 transition-all text-yellow-100 placeholder:text-yellow-600/50" placeholder="馬年賀詞 (限 10 字)" />
+                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl text-2xl active:translate-y-1 border-b-4 border-yellow-700 uppercase italic">報名登錄 ➔</button>
                                         </div>
                                     </form>
                                 )}
@@ -312,12 +315,12 @@
                                         <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pb-4">
                                             {SPONSORS.map((s, i) => (
                                                 <div key={i} className="bg-red-900/40 p-4 rounded-2xl border border-yellow-600/20 flex items-center gap-4 text-left shadow-lg">
-                                                    <div className="bg-gold-gradient p-2 rounded-lg text-red-900"><Icon name="gift" className="w-6 h-6" /></div>
+                                                    <div className="bg-gold-gradient p-2 rounded-lg text-red-900 shadow-md"><Icon name="gift" className="w-6 h-6" /></div>
                                                     <div><div className="font-black text-lg text-yellow-50">{s.name}</div><div className="text-sm opacity-70 text-yellow-200/80">{s.prize}</div></div>
                                                 </div>
                                             ))}
                                         </div>
-                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-xl shrink-0 mb-4 border-b-4 border-yellow-700">進入備戰大廳 <Icon name="chevron-right" /></button>
+                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl text-xl shrink-0 mb-4 border-b-4 border-yellow-700">進入備戰大廳 <Icon name="chevron-right" /></button>
                                     </div>
                                 )}
 
@@ -328,7 +331,7 @@
                                         <div className="text-center text-xs text-yellow-200/60 animate-pulse bg-black/30 py-3 rounded-full italic border border-yellow-600/10">💡 等待主辦方啟動搶答...</div>
                                         {localCountdown !== null && (
                                             <div className="fixed inset-0 z-50 bg-red-950/98 flex flex-col items-center justify-center animate-in fade-in">
-                                                <div className="text-gold font-black text-9xl animate-ping mb-8">{localCountdown}</div>
+                                                <div className="text-gold font-black text-9xl animate-ping mb-8 drop-shadow-[0_0_20px_gold]">{localCountdown}</div>
                                                 <div className="text-white text-3xl font-black tracking-widest px-10 py-5 rounded-full border-2 border-yellow-500 uppercase">衝刺搶答！</div>
                                             </div>
                                         )}
@@ -340,7 +343,8 @@
                                         <WordCloud words={players} isBackground={true} />
                                         
                                         <div className="flex-grow flex flex-col space-y-4 z-10">
-                                            <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 relative overflow-hidden shrink-0 mt-2 shadow-2xl">
+                                            {/* ✨ 計時器配色優化 ✨ */}
+                                            <div className="flex justify-between items-center bg-red-900/90 p-4 rounded-xl border border-yellow-600/40 relative overflow-hidden shrink-0 mt-2 shadow-2xl">
                                                 <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
                                                 <span className="text-gold text-xl italic font-black">第 {displayQuestionIndex + 1} 題</span>
                                                 <span className={`text-2xl font-mono ${elapsedSeconds >= 6 && currentPhase === 'answering' ? 'text-red-400 animate-pulse' : 'text-white'}`}>
@@ -352,25 +356,25 @@
                                                 <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[displayQuestionIndex].q}</p>
                                             </div>
 
+                                            {/* ✨ 選項配色優化：深紅背景 + 金色邊框 ✨ */}
                                             <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
                                                 {QUESTIONS[displayQuestionIndex].a.map((ans, i) => {
                                                     const correctRef = QUESTIONS[displayQuestionIndex].correct;
                                                     const isCorrectIdx = Array.isArray(correctRef) ? correctRef.includes(i) : i === correctRef;
                                                     
-                                                    let btnClass = "bg-red-950/40 border-yellow-600/30";
+                                                    let btnClass = "bg-red-950/60 border-yellow-600/50";
                                                     let statusIcon = null;
 
                                                     if (currentPhase === 'answering') {
                                                         if (selectedOption === i) btnClass = "bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20";
-                                                        else if (tempSelectedOption === i) btnClass = "border-yellow-400 bg-red-900/80 scale-[1.02]";
+                                                        else if (tempSelectedOption === i) btnClass = "border-yellow-400 bg-red-900/80 scale-[1.02] ring-2 ring-yellow-500/50";
                                                     } else {
-                                                        // ✨ Reveal 階段樣式 (8-10s) ✨
                                                         if (isCorrectIdx) {
                                                             btnClass = "bg-green-600 border-green-300 text-white ring-4 ring-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.6)]";
-                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full"><Icon name="check-circle" className="w-3 h-3" /> 正確答案 +10 分</span>;
+                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full font-bold">✅ 正確答案 +10 分</span>;
                                                         } else if (selectedOption === i) {
-                                                            btnClass = "bg-red-600 border-red-300 text-white opacity-90";
-                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-black/20 px-2 py-1 rounded-full"><Icon name="x-circle" className="w-3 h-3" /> 錯誤</span>;
+                                                            btnClass = "bg-red-700 border-red-400 text-white opacity-90";
+                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-black/20 px-2 py-1 rounded-full font-bold">❌ 錯誤</span>;
                                                         } else {
                                                             btnClass = "opacity-20 bg-gray-900 grayscale";
                                                         }
@@ -379,7 +383,7 @@
                                                     return (
                                                         <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
                                                             disabled={currentPhase !== 'answering' || selectedOption !== null}
-                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${btnClass}`}>
+                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-xl overflow-hidden ${btnClass}`}>
                                                             <span className="relative z-10 flex items-center">
                                                                 <span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}
                                                             </span>
@@ -391,7 +395,7 @@
                                             
                                             <div className="h-20 shrink-0 flex items-center justify-center">
                                                 {currentPhase === 'answering' && tempSelectedOption !== null && selectedOption === null && (
-                                                    <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl animate-in slide-in-from-bottom-5 active:scale-95 border-b-4 border-yellow-700">確認送出答案 ➔</button>
+                                                    <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl animate-in slide-in-from-bottom-5 active:scale-95 border-b-4 border-yellow-800">確認送出答案 ➔</button>
                                                 )}
                                                 {selectedOption !== null && currentPhase === 'answering' && (
                                                     <div className="text-yellow-400 font-black italic animate-pulse flex items-center gap-2 text-xl drop-shadow-md">
@@ -410,7 +414,7 @@
 
                                 {gameStep === 'leaderboard' && (
                                     <div className="flex flex-col space-y-4 h-full animate-in slide-in-from-bottom z-10">
-                                        <h2 className="text-3xl font-black text-gold text-center py-4 tracking-widest italic font-serif drop-shadow-md uppercase">即時英雄榜</h2>
+                                        <h2 className="text-4xl font-black text-gold text-center py-4 tracking-widest italic font-serif drop-shadow-md uppercase">英雄英雄榜</h2>
                                         {me && (
                                             <div className="bg-gold-gradient text-red-950 p-6 rounded-3xl border-4 border-white shadow-2xl mb-4 transform scale-105 shrink-0">
                                                 <div className="flex items-center justify-between">
@@ -426,14 +430,14 @@
                                                 </div>
                                             </div>
                                         )}
-                                        <div className="flex-grow bg-black/30 rounded-3xl p-3 border-2 border-yellow-600/10 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
+                                        <div className="flex-grow bg-black/40 rounded-3xl p-3 border-2 border-yellow-700/20 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
                                             {sortedPlayers.filter(p => p.id !== user.uid).map((p) => {
                                                 const r = sortedPlayers.findIndex(x => x.id === p.id) + 1;
                                                 return (
                                                     <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 shadow-sm transition-all">
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${r <= 3 ? 'bg-gold-gradient text-red-900 shadow-md' : 'bg-red-950/50'}`}>{r}</div>
-                                                            <div className="font-bold text-lg">{p.name}</div>
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${r <= 3 ? 'bg-gold-gradient text-red-900 shadow-md' : 'bg-red-900 shadow-inner'}`}>{r}</div>
+                                                            <div className="font-bold text-lg text-yellow-50">{p.name}</div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-black text-xl text-gold">{p.score}分</div>
@@ -457,9 +461,9 @@
                                 <div key={i} className="confetti" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 2}s`, backgroundColor: ['#fbbf24', '#f59e0b', '#d4af37', '#ffffff'][i % 4] }}></div>
                             ))}
                             <div className="bg-white rounded-[50px] w-full max-sm:max-w-sm overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.6)] relative z-10 border-8 border-yellow-500 animate-bounce-short text-center">
-                                <div className="bg-gold-gradient p-10 relative"><div className="text-red-700 text-7xl mb-4 animate-bounce">🧧</div><h2 className="text-red-950 font-black text-4xl italic">大獎開出！</h2></div>
+                                <div className="bg-gold-gradient p-10 relative shadow-md"><div className="text-red-700 text-7xl mb-4 animate-bounce">🧧</div><h2 className="text-red-950 font-black text-4xl italic">大獎開出！</h2></div>
                                 <div className="p-10 space-y-6 bg-white">
-                                    <div><p className="text-gray-400 italic">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter">{globalCelebration.name}</p></div>
+                                    <div><p className="text-gray-400 italic font-bold">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter">{globalCelebration.name}</p></div>
                                     <div className="py-6 bg-red-50 rounded-[40px] border-4 border-red-100 shadow-inner"><p className="text-red-900 font-black text-3xl italic underline decoration-yellow-600/20">{globalCelebration.prize}</p></div>
                                 </div>
                             </div>
@@ -600,7 +604,7 @@
                                         {selectedQuestionTab !== null && (
                                             <div className="space-y-4">
                                                 <div className="bg-white/95 rounded-3xl p-6 shadow-xl text-red-900 border-b-4 border-yellow-600/30">
-                                                    <p className="text-lg font-black italic mb-4 leading-snug">{QUESTIONS[selectedQuestionTab].q}</p>
+                                                    <p className="text-lg font-black italic mb-4 leading-snug font-bold">{QUESTIONS[selectedQuestionTab].q}</p>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {QUESTIONS[selectedQuestionTab].a.map((ans, i) => {
                                                             const correctRef = QUESTIONS[selectedQuestionTab].correct;
@@ -614,7 +618,7 @@
                                                     </div>
                                                 </div>
                                                 <div className="bg-red-950/60 rounded-3xl overflow-hidden border border-yellow-600/20 shadow-2xl">
-                                                    <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex justify-between"><span>答題詳情 (Q{selectedQuestionTab+1})</span></div>
+                                                    <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex justify-between shadow-sm"><span>答題詳情 (Q{selectedQuestionTab+1})</span></div>
                                                     <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center">
                                                         {(() => {
                                                             const stats = [0, 0, 0, 0];
@@ -638,8 +642,8 @@
                                                             const correctRef = QUESTIONS[selectedQuestionTab].correct;
                                                             const isCorrectChoice = hasChoice && (Array.isArray(correctRef) ? correctRef.includes(userChoice) : userChoice === correctRef);
                                                             return (
-                                                                <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs">
-                                                                    <div className="font-bold flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400' : 'bg-red-500 animate-pulse'}`}></div><span className="truncate max-w-[120px]">{p.name}</span></div>
+                                                                <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs hover:bg-white/5 transition-colors">
+                                                                    <div className="font-bold flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400 shadow-[0_0_5px_green]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div><span className="truncate max-w-[120px] text-yellow-100">{p.name}</span></div>
                                                                     <div className={`font-black italic text-right ${hasChoice && isCorrectChoice ? 'text-green-400' : 'text-yellow-500/30'}`}>{hasChoice ? `選 ${String.fromCharCode(65 + userChoice)}` : '等待中...'}</div>
                                                                 </div>
                                                             );
@@ -681,7 +685,7 @@
                                                 <option value="">-- 選擇得獎參賽者 --</option>
                                                 {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                                             </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className="w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all bg-gold-gradient text-red-900 border-yellow-700 active:translate-y-1">🎉 撥動開獎</button>
+                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className="w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1">🎉 撥動開獎</button>
                                         </div>
                                     </div>
                                 )}
@@ -689,18 +693,18 @@
                         </div>
 
                         <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
-                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>排行榜 (耗時)</span></div>
+                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>英雄排行榜 (耗時)</span></div>
                             <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
                                 {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
-                                    <div key={p.id} className="flex items-center justify-between p-3.5">
+                                    <div key={p.id} className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-900' : 'bg-red-900'}`}>{i + 1}</div>
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>
+                                                <span className="font-bold text-sm tracking-tight truncate max-w-[100px] text-yellow-50">{p.name}</span>
                                                 {p.prize && <span className="text-[9px] text-yellow-400 font-black italic">🧧 {p.prize}</span>}
                                             </div>
                                         </div>
-                                        <div className="text-right"><div className="text-gold font-black text-xl italic">{p.score}分</div><div className="text-[9px] text-white/40">{p.totalTimeTaken?.toFixed(1)}s</div></div>
+                                        <div className="text-right"><div className="text-gold font-black text-xl italic drop-shadow-sm">{p.score}分</div><div className="text-[9px] text-white/40">{p.totalTimeTaken?.toFixed(1)}s</div></div>
                                     </div>
                                 )) : <div className="p-12 text-center text-white/20 italic text-xs uppercase tracking-widest animate-pulse font-black">Waiting for heroes...</div>}
                             </div>
@@ -710,10 +714,10 @@
                     {pendingResult && (
                         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6 animate-in zoom-in">
                             <div className="bg-white rounded-[60px] w-full max-sm:max-w-sm p-10 text-center border-8 border-yellow-500 shadow-2xl">
-                                <h2 className="text-3xl font-black text-red-900 mb-4 italic">恭喜中獎！</h2>
+                                <h2 className="text-3xl font-black text-red-900 mb-4 italic font-bold">恭喜中獎！</h2>
                                 <p className="text-4xl font-black text-gray-900 mb-6">{pendingResult.name}</p>
                                 <div className="bg-red-50 p-6 rounded-3xl border-4 border-red-100 mb-8 font-black text-3xl text-red-900 shadow-inner">{pendingResult.prize}</div>
-                                <button onClick={confirmPrize} className="w-full py-5 bg-gold-gradient rounded-2xl font-black text-xl shadow-xl text-red-900 active:scale-95 border-b-4 border-yellow-700">確認並發送 ➔</button>
+                                <button onClick={confirmPrize} className="w-full py-5 bg-gold-gradient rounded-2xl font-black text-xl shadow-xl text-red-900 active:scale-95 border-b-4 border-yellow-700 uppercase italic">確認並發送 ➔</button>
                             </div>
                         </div>
                     )}

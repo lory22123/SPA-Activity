@@ -4,18 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2026年達豐 & 明定 春酒搶答大賽</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --app-height: 100dvh; }
@@ -147,6 +142,8 @@
             const [gameStep, setGameStep] = useState('register'); 
             const [players, setPlayers] = useState([]);
             const [gameState, setGameState] = useState({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question' });
+            // ✨ 修正 1：新增 displayQuestionIndex 鎖定 UI 顯示的題目內容 ✨
+            const [displayQuestionIndex, setDisplayQuestionIndex] = useState(0); 
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
             const [lastResultCorrect, setLastResultCorrect] = useState(null); 
@@ -178,6 +175,7 @@
                             setGameStep('register');
                             setSelectedOption(null);
                             setTempSelectedOption(null);
+                            setLastResultCorrect(null);
                         }
                     });
                 
@@ -186,9 +184,18 @@
                         if (s.exists) {
                             const data = s.data();
                             setGameState(data);
+
+                            // ✨ 修正 1：同步邏輯判斷。如果是題目階段(8秒內)，才更新顯示的題目索引。 ✨
+                            // 這樣在「戰報展示」階段，displayQuestionIndex 會維持上一題的值。
+                            const diff = (Date.now() - data.phaseStartTime) / 1000;
+                            if (diff < 8 || data.viewMode === 'final') {
+                                setDisplayQuestionIndex(data.currentQuestionIndex);
+                            }
+
                             if (data.isGameStarted) {
                                 setSelectedOption(null);
                                 setTempSelectedOption(null); 
+                                setLastResultCorrect(null);
                             }
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
@@ -199,6 +206,7 @@
                                 setGameStep('register');
                                 setSelectedOption(null);
                                 setTempSelectedOption(null);
+                                setLastResultCorrect(null);
                             }
                         }
                     });
@@ -222,7 +230,6 @@
 
             useEffect(() => {
                 const isRecent = gameState.countdownStartTime > (Date.now() - 30000);
-                // ✨ 修正：只有在 isGameStarted 為 true 時才啟動倒數 ✨
                 if (gameState.isGameStarted && gameState.countdownStartTime > 0 && isRecent && gameStep === 'greetings') {
                     const timer = setInterval(() => {
                         const diff = Math.max(0, 5 - Math.floor((Date.now() - gameState.countdownStartTime) / 1000));
@@ -242,7 +249,6 @@
                 if (currentPhase === 'final' && gameStep === 'quiz') setGameStep('leaderboard');
             }, [currentPhase, gameStep]);
 
-            // ✨ 排序邏輯：分數優先，耗時其次 ✨
             const sortedPlayers = useMemo(() => {
                 return [...players].sort((a, b) => {
                     if (b.score !== a.score) return b.score - a.score;
@@ -265,17 +271,19 @@
             };
 
             const handleConfirmAnswer = async () => {
-                // ✨ 修正：寬限至 10 秒。只要按鈕還沒消失前按下，本地立即鎖定狀態。 ✨
                 if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds > 10) return;
                 
+                // ✨ 修正 2：鎖定發送時的題目索引 ✨
+                const questionIdxAtSubmit = gameState.currentQuestionIndex;
                 const timeSpent = Math.min(8.0, elapsedSeconds); 
                 const index = tempSelectedOption;
                 
-                // ✨ 本地即時鎖定，防止 UI 顯示未能即時確認 ✨
                 setSelectedOption(index); 
                 
-                const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
+                const correctRef = QUESTIONS[questionIdxAtSubmit].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
+                
+                // 本地預先設定結果，防止 UI 抖動
                 setLastResultCorrect(isCorrect);
                 
                 try {
@@ -289,7 +297,7 @@
                     await playerRef.update({ 
                         score: newScore,
                         totalTimeTaken: parseFloat(newTotalTime.toFixed(2)),
-                        [`answers.${gameState.currentQuestionIndex}`]: index 
+                        [`answers.${questionIdxAtSubmit}`]: index 
                     });
                 } catch (err) {
                     console.error("Submit Error:", err);
@@ -365,14 +373,14 @@
                                             <div className="flex-grow flex flex-col space-y-4 z-10">
                                                 <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
                                                     <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
-                                                    <span className="text-gold text-xl italic">第 {gameState.currentQuestionIndex + 1} 題</span>
+                                                    <span className="text-gold text-xl italic">第 {displayQuestionIndex + 1} 題</span>
                                                     <span className={`text-2xl font-mono ${elapsedSeconds >= 6 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 8 - Math.floor(elapsedSeconds))}s</span>
                                                 </div>
                                                 <div className="quiz-card text-red-950 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
-                                                    <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[gameState.currentQuestionIndex].q}</p>
+                                                    <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[displayQuestionIndex].q}</p>
                                                 </div>
                                                 <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
-                                                    {QUESTIONS[gameState.currentQuestionIndex].a.map((ans, i) => (
+                                                    {QUESTIONS[displayQuestionIndex].a.map((ans, i) => (
                                                         <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
                                                             disabled={selectedOption !== null || elapsedSeconds >= 8.2}
                                                             className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${selectedOption === i ? 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20' : tempSelectedOption === i ? 'border-yellow-400 bg-red-900/80 ring-2 ring-yellow-500/50 scale-[1.02]' : 'bg-red-950/40 border-yellow-600/30'}`}>
@@ -396,8 +404,11 @@
                                                 <div className="text-center pt-4"><div className="text-gold text-5xl font-black mb-2 drop-shadow-lg italic tracking-tighter uppercase">搶答即時戰報</div></div>
                                                 <div className="bg-white/95 rounded-3xl p-6 border-l-8 border-green-500 shadow-xl text-red-900 shrink-0">
                                                     <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest"><Icon name="check-circle" className="w-4 h-4" /> Correct Answer</div>
-                                                    <p className="text-2xl font-black italic">{Array.isArray(QUESTIONS[gameState.currentQuestionIndex].correct) ? "以上皆是！" : QUESTIONS[gameState.currentQuestionIndex].a[QUESTIONS[gameState.currentQuestionIndex].correct]}</p>
-                                                    {selectedOption === null ? (
+                                                    {/* ✨ 修正 1：戰報處顯示剛才那一題(displayQuestionIndex)的正確答案 ✨ */}
+                                                    <p className="text-2xl font-black italic">{Array.isArray(QUESTIONS[displayQuestionIndex].correct) ? "以上皆是！" : QUESTIONS[displayQuestionIndex].a[QUESTIONS[displayQuestionIndex].correct]}</p>
+                                                    
+                                                    {/* ✨ 修正 2：更精確地顯示「未及時確認」訊息 ✨ */}
+                                                    {selectedOption === null && lastResultCorrect === null ? (
                                                         <div className="mt-3 text-gray-500 font-bold flex items-center gap-1"><Icon name="alert-circle" className="w-5 h-5" /> 未能及時確認答案...</div>
                                                     ) : lastResultCorrect ? (
                                                         <div className="mt-3 text-green-600 font-black flex items-center gap-1 animate-bounce"><Icon name="thumbs-up" className="w-5 h-5" /> 答對了！(+10 分)</div>
@@ -416,7 +427,6 @@
                                                             </div>
                                                             <div className="text-right">
                                                                 <div className="font-black text-gold italic leading-none">{p.score}分</div>
-                                                                {/* ✨ User 端也加入耗時顯示 ✨ */}
                                                                 <div className="text-[8px] text-white/40 mt-0.5">{p.totalTimeTaken?.toFixed(1)}s</div>
                                                             </div>
                                                         </div>

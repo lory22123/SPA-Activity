@@ -4,46 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>2026年達豐 & 明定 春酒搶答大賽</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- React & ReactDOM -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <!-- Babel for JSX compilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Firebase SDKs (Compat Version) -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         :root { --app-height: 100dvh; }
         body {
             height: var(--app-height);
             margin: 0;
-            /* 背景維持深紅漸層 */
             background: radial-gradient(circle at center, #991b1b 0%, #7f1d1d 50%, #450a0a 100%);
             overflow: hidden;
             touch-action: manipulation;
         }
-        /* ✨ 調整金色漸層，使其更亮更飽和 ✨ */
-        .bg-gold-gradient { background: linear-gradient(180deg, #f9e498 0%, #d4af37 50%, #b8860b 100%); }
+        .bg-gold-gradient { background: linear-gradient(135deg, #d4af37 0%, #f9e498 50%, #b8860b 100%); }
         .bg-green-gradient { background: linear-gradient(135deg, #15803d 0%, #22c55e 50%, #166534 100%); }
-        .text-gold { 
-            background: linear-gradient(to bottom, #fef08a 0%, #f9e498 40%, #d4af37 100%); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-        }
+        .text-gold { background: linear-gradient(to bottom, #f9e498 0%, #d4af37 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .border-gold { border-color: #d4af37; }
         @keyframes float { 0%, 100% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-10px) rotate(1.5deg); } }
         .animate-float { animation: float 4s ease-in-out infinite; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .text-shadow-gold { text-shadow: 0 2px 10px rgba(212, 175, 55, 0.6); }
-        /* 題目卡片維持白色 */
-        .quiz-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
-        .progress-bar { transition: width 0.1s linear; background: linear-gradient(90deg, #b8860b, #fef08a); }
+        .text-shadow-gold { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
+        .quiz-card { background: rgba(255, 255, 255, 0.95); box-shadow: 0 0 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(212, 175, 55, 0.2); }
+        .progress-bar { transition: width 0.3s linear; background: linear-gradient(90deg, #b8860b, #f9e498); }
         @keyframes confetti { 0% { transform: translateY(-100%) rotate(0deg); opacity: 1; } 100% { transform: translateY(100vh) rotate(720deg); opacity: 0; } }
         .confetti { position: absolute; width: 8px; height: 8px; animation: confetti 4s linear infinite; }
     </style>
@@ -131,10 +119,15 @@
                     {words.length > 0 ? (
                         words.slice(0, 9).map((w, idx) => {
                             const slot = slots[idx % slots.length];
+                            const colors = ['text-yellow-400', 'text-white', 'text-amber-200', 'text-yellow-100'];
                             return (
-                                <div key={idx} className={`absolute animate-float font-black text-center drop-shadow-xl transition-all duration-1000`}
+                                <div key={w.id || idx} className={`absolute animate-float font-black text-center drop-shadow-xl transition-all duration-1000`}
                                     style={{ 
-                                        top: `${slot.t}%`, left: `${slot.l}%`, transform: `rotate(${slot.rot}deg)`, color: '#f9e498', fontSize: isBackground ? '20px' : '28px'
+                                        top: `${slot.t}%`, 
+                                        left: `${slot.l}%`, 
+                                        transform: `rotate(${slot.rot}deg)`, 
+                                        color: colors[idx % colors.length], 
+                                        fontSize: isBackground ? `${Math.max(18, 36 - (w.greeting || '').length * 2)}px` : `${Math.max(22, 44 - (w.greeting || '').length * 2)}px`
                                     }}>
                                     <div className="text-shadow-gold">{w.greeting}</div>
                                     <div className="text-[10px] opacity-60 font-bold mt-1">-{w.name}</div>
@@ -142,7 +135,7 @@
                             );
                         })
                     ) : (
-                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold text-yellow-500/50">等待參賽者登錄中...</p></div>
+                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold">等待參賽者登錄中...</p></div>
                     )}
                 </div>
             );
@@ -153,7 +146,6 @@
             const [gameStep, setGameStep] = useState('register'); 
             const [players, setPlayers] = useState([]);
             const [gameState, setGameState] = useState({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question' });
-            
             const [displayQuestionIndex, setDisplayQuestionIndex] = useState(0); 
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
@@ -165,10 +157,13 @@
 
             useEffect(() => {
                 const initAuth = async () => {
-                    const unsubscribe = auth.onAuthStateChanged(async (u) => {
-                        if (u) setUser(u); else await auth.signInAnonymously();
-                    });
-                    return () => unsubscribe();
+                    try {
+                        const unsubscribe = auth.onAuthStateChanged(async (u) => {
+                            if (u) setUser(u);
+                            else await auth.signInAnonymously();
+                        });
+                        return () => unsubscribe();
+                    } catch (e) { console.error("Auth init error:", e); }
                 };
                 initAuth();
             }, []);
@@ -176,56 +171,69 @@
             useEffect(() => {
                 if (!user) return;
                 const unsubPlayers = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players')
-                    .onSnapshot(s => setPlayers(s.docs.map(d => ({ id: d.id, ...d.data() }))));
+                    .onSnapshot(s => {
+                        const currentPlayers = s.docs.map(d => ({ id: d.id, ...d.data() }));
+                        setPlayers(currentPlayers);
+                        if (gameStep !== 'register' && !currentPlayers.some(p => p.id === user.uid)) {
+                            setGameStep('register');
+                            setSelectedOption(null);
+                            setTempSelectedOption(null);
+                            setLastResultCorrect(null);
+                        }
+                    });
                 
                 const unsubState = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState')
                     .onSnapshot(s => {
                         if (s.exists) {
                             const data = s.data();
                             setGameState(data);
+
                             const diff = (Date.now() - data.phaseStartTime) / 1000;
-                            
-                            if (data.isGameStarted && diff < 1 && data.viewMode !== 'final') {
-                                setGameStep('quiz');
+                            // 調整處：延長鎖定當前題目畫面的時間至 12 秒
+                            if (diff < 12 || data.viewMode === 'final') {
+                                setDisplayQuestionIndex(data.currentQuestionIndex);
                             }
 
-                            if (diff < 8 || data.viewMode === 'final') {
-                                setDisplayQuestionIndex(data.currentQuestionIndex);
+                            if (data.isGameStarted) {
                                 setSelectedOption(null);
-                                setTempSelectedOption(null);
+                                setTempSelectedOption(null); 
                                 setLastResultCorrect(null);
                             }
-                            
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
                                 setTimeout(() => setGlobalCelebration(null), 6000);
                             }
+                            const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
+                            if (!data.isGameStarted && !allowedStepsBeforeStart.includes(gameStep)) {
+                                setGameStep('register');
+                                setSelectedOption(null);
+                                setTempSelectedOption(null);
+                                setLastResultCorrect(null);
+                            }
                         }
                     });
                 return () => { unsubPlayers(); unsubState(); };
-            }, [user]);
+            }, [user, isAdmin, gameStep]);
 
             useEffect(() => {
                 if (!gameState.phaseStartTime || !gameState.isGameStarted) return;
                 const timer = setInterval(() => {
                     const diff = (Date.now() - gameState.phaseStartTime) / 1000;
                     setElapsedSeconds(diff);
-                    if (gameStep === 'quiz' && diff >= 10 && gameState.viewMode !== 'final') {
-                        setGameStep('leaderboard');
-                    }
                 }, 100);
                 return () => clearInterval(timer);
-            }, [gameState.phaseStartTime, gameState.isGameStarted, gameStep]);
+            }, [gameState.phaseStartTime, gameState.isGameStarted]);
 
             const currentPhase = useMemo(() => {
                 if (gameState.viewMode === 'final') return 'final';
-                if (elapsedSeconds < 8) return 'answering';
-                if (elapsedSeconds < 10) return 'reveal';
-                return 'rank';
+                if (elapsedSeconds < 8) return 'question'; 
+                if (elapsedSeconds < 12) return 'reveal'; // 調整處：原地揭曉延長至 12 秒
+                return 'rank'; 
             }, [elapsedSeconds, gameState.viewMode]);
 
             useEffect(() => {
-                if (gameState.isGameStarted && gameState.countdownStartTime > 0 && gameStep === 'greetings') {
+                const isRecent = gameState.countdownStartTime > (Date.now() - 30000);
+                if (gameState.isGameStarted && gameState.countdownStartTime > 0 && isRecent && gameStep === 'greetings') {
                     const timer = setInterval(() => {
                         const diff = Math.max(0, 5 - Math.floor((Date.now() - gameState.countdownStartTime) / 1000));
                         setLocalCountdown(diff);
@@ -235,53 +243,76 @@
                         }
                     }, 100);
                     return () => clearInterval(timer);
+                } else {
+                    setLocalCountdown(null);
                 }
             }, [gameState.countdownStartTime, gameState.isGameStarted, gameStep]);
 
+            useEffect(() => {
+                if (currentPhase === 'final' && gameStep === 'quiz') setGameStep('leaderboard');
+            }, [currentPhase, gameStep]);
+
             const sortedPlayers = useMemo(() => {
-                return [...players].sort((a, b) => b.score - a.score || (a.totalTimeTaken || 0) - (b.totalTimeTaken || 0));
+                return [...players].sort((a, b) => {
+                    if (b.score !== a.score) return b.score - a.score;
+                    return (a.totalTimeTaken || 0) - (b.totalTimeTaken || 0);
+                });
             }, [players]);
 
-            const me = sortedPlayers.find(p => p.id === user?.uid);
-            const myRank = sortedPlayers.findIndex(p => p.id === user?.uid) + 1;
+            const me = useMemo(() => sortedPlayers.find(p => p.id === user?.uid), [sortedPlayers, user]);
+            const myRank = useMemo(() => sortedPlayers.findIndex(p => p.id === user?.uid) + 1, [sortedPlayers, user]);
+            const others = useMemo(() => sortedPlayers.filter(p => p.id !== user?.uid), [sortedPlayers, user]);
 
             const handleRegister = async (e) => {
                 e.preventDefault();
+                const name = e.target.name.value;
+                const greeting = e.target.greeting.value;
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).set({
-                    name: e.target.name.value, greeting: e.target.greeting.value.substring(0, 10), score: 0, totalTimeTaken: 0, answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    name, greeting: greeting.substring(0, 10), score: 0, totalTimeTaken: 0, prize: '', answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 setGameStep('sponsors');
             };
 
             const handleConfirmAnswer = async () => {
-                if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds >= 8) return;
-                const currentIdx = gameState.currentQuestionIndex;
+                // 嚴格防止延遲補點：超過 8.0 秒即視為無效操作
+                if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds >= 8.0) return;
+                
+                const questionIdxAtSubmit = gameState.currentQuestionIndex;
+                const timeSpent = Math.min(8.0, elapsedSeconds); 
                 const index = tempSelectedOption;
+                
                 setSelectedOption(index); 
-                const correctRef = QUESTIONS[currentIdx].correct;
+                
+                const correctRef = QUESTIONS[questionIdxAtSubmit].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
+                
                 setLastResultCorrect(isCorrect);
                 
                 try {
                     const playerRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid);
                     const snap = await playerRef.get();
-                    const d = snap.data();
+                    const currentData = snap.data();
+                    
+                    const newScore = isCorrect ? (currentData?.score || 0) + 10 : (currentData?.score || 0);
+                    const newTotalTime = (currentData?.totalTimeTaken || 0) + timeSpent;
+                    
                     await playerRef.update({ 
-                        score: isCorrect ? (d?.score || 0) + 10 : (d?.score || 0),
-                        totalTimeTaken: (d?.totalTimeTaken || 0) + Math.min(8, elapsedSeconds),
-                        [`answers.${currentIdx}`]: index 
+                        score: newScore,
+                        totalTimeTaken: parseFloat(newTotalTime.toFixed(2)),
+                        [`answers.${questionIdxAtSubmit}`]: index 
                     });
-                } catch (err) { console.error(err); }
+                } catch (err) {
+                    console.error("Submit Error:", err);
+                }
             };
 
             return (
-                <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans bg-red-950">
-                    {/* ✨ 導航列配色優化 ✨ */}
-                    <div className="p-4 flex justify-between items-center bg-red-950/90 backdrop-blur-md border-b-2 border-yellow-700/50 shrink-0 z-20 shadow-xl">
-                        <h1 className="text-lg font-black flex items-center gap-2 italic">
-                           <span className="text-gold drop-shadow-md">🐎 2026 達豐&明定 春酒活動</span>
+                <div className="flex flex-col h-full max-w-lg mx-auto shadow-2xl relative overflow-hidden text-white font-sans">
+                    <div className="p-4 flex justify-between items-center bg-red-950/80 backdrop-blur-md border-b-2 border-yellow-600/30 shrink-0 z-20 shadow-xl">
+                        <h1 className="text-lg font-black flex items-center gap-2 tracking-tighter italic">
+                           <span className="text-yellow-500 drop-shadow-md">🐎 2026 達豐 & 明定 春酒</span>
                         </h1>
-                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-950 px-3 py-1 rounded-full font-black uppercase shadow-lg transition-transform active:scale-95 border border-yellow-200/50">
+                        <button onClick={() => setIsAdmin(!isAdmin)} className="text-[10px] bg-gold-gradient text-red-900 px-3 py-1 rounded-full border border-yellow-200 font-black uppercase shadow-lg transition-transform active:scale-95">
                             {isAdmin ? 'User' : 'Admin'}
                         </button>
                     </div>
@@ -292,47 +323,45 @@
                         ) : (
                             <div className="flex-grow flex flex-col h-full relative">
                                 {gameStep === 'register' && (
-                                    <form onSubmit={handleRegister} className="my-auto space-y-8 animate-in fade-in duration-500 z-10">
+                                    <div className="my-auto space-y-8 animate-in fade-in duration-500 z-10">
                                         <div className="text-center">
-                                            {/* ✨ 註冊頁面 Icon 配色調整 ✨ */}
-                                            <div className="bg-gold-gradient w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-6 animate-bounce">
-                                                <Icon name="sparkles" className="text-red-900 w-12 h-12" />
+                                            <div className="bg-gold-gradient w-24 h-24 rounded-full flex items-center justify-center mx-auto border-4 border-red-900 shadow-2xl mb-4 animate-bounce">
+                                                <Icon name="sparkles" className="text-red-800 w-12 h-12" />
                                             </div>
-                                            <h2 className="text-4xl font-black text-gold tracking-widest uppercase italic font-serif">馬到成功 2026</h2>
+                                            <h2 className="text-4xl font-black text-gold tracking-widest text-shadow-gold uppercase font-serif italic">馬到成功 2026</h2>
                                         </div>
-                                        <div className="space-y-4 px-4">
-                                            {/* ✨ 輸入框邊框改為金色 ✨ */}
-                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600/80 outline-none text-xl shadow-inner focus:border-yellow-400 transition-all text-yellow-100 placeholder:text-yellow-600/50" placeholder="您的姓名" />
-                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600/80 outline-none text-xl shadow-inner focus:border-yellow-400 transition-all text-yellow-100 placeholder:text-yellow-600/50" placeholder="馬年賀詞 (限 10 字)" />
-                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl text-2xl active:translate-y-1 border-b-4 border-yellow-700 uppercase italic">報名登錄 ➔</button>
-                                        </div>
-                                    </form>
+                                        <form onSubmit={handleRegister} className="space-y-4 px-4">
+                                            <input name="name" required className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="您的姓名" />
+                                            <input name="greeting" required maxLength={10} className="w-full p-4 rounded-2xl bg-red-950/50 border-2 border-yellow-600 outline-none text-xl shadow-inner focus:border-yellow-400" placeholder="馬年賀詞 (限 10 字)" />
+                                            <button type="submit" className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl active:translate-y-1 border-b-4 border-yellow-700 uppercase italic">報名登錄 ➔</button>
+                                        </form>
+                                    </div>
                                 )}
 
                                 {gameStep === 'sponsors' && (
-                                    <div className="flex-grow flex flex-col h-full space-y-6 animate-in slide-in-from-right text-center">
-                                        <h2 className="text-3xl font-black text-gold mt-4 italic">感謝贊助商支持</h2>
+                                    <div className="flex-grow flex flex-col h-full space-y-6 animate-in slide-in-from-right z-10 text-center">
+                                        <h2 className="text-3xl font-black text-gold mt-4 tracking-wider italic">感謝贊助商支持</h2>
                                         <div className="flex-grow space-y-3 overflow-y-auto no-scrollbar pb-4">
                                             {SPONSORS.map((s, i) => (
-                                                <div key={i} className="bg-red-900/40 p-4 rounded-2xl border border-yellow-600/20 flex items-center gap-4 text-left shadow-lg">
-                                                    <div className="bg-gold-gradient p-2 rounded-lg text-red-900 shadow-md"><Icon name="gift" className="w-6 h-6" /></div>
-                                                    <div><div className="font-black text-lg text-yellow-50">{s.name}</div><div className="text-sm opacity-70 text-yellow-200/80">{s.prize}</div></div>
+                                                <div key={i} className="bg-red-900/40 p-4 rounded-2xl border border-yellow-600/20 flex items-center gap-4 shadow-lg text-left">
+                                                    <div className="bg-gold-gradient p-2 rounded-lg text-red-900"><Icon name="gift" className="w-6 h-6" /></div>
+                                                    <div><div className="font-black text-lg text-yellow-50">{s.name}</div><div className="text-sm text-yellow-200/80">{s.prize}</div></div>
                                                 </div>
                                             ))}
                                         </div>
-                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-gold-gradient text-red-950 font-black rounded-2xl shadow-xl text-xl shrink-0 mb-4 border-b-4 border-yellow-700">進入備戰大廳 <Icon name="chevron-right" /></button>
+                                        <button onClick={() => setGameStep('greetings')} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-xl shrink-0 mb-4 border-b-4 border-yellow-700">進入備戰大廳 <Icon name="chevron-right" className="inline w-6 h-6" /></button>
                                     </div>
                                 )}
 
                                 {gameStep === 'greetings' && (
-                                    <div className="flex-grow flex flex-col space-y-4 h-full">
-                                        <h2 className="text-2xl font-black text-gold text-center italic underline decoration-yellow-600 tracking-widest">彼此的祝福牆</h2>
+                                    <div className="flex-grow flex flex-col space-y-4 animate-in fade-in h-full z-10">
+                                        <h2 className="text-2xl font-black text-gold text-center shrink-0 italic underline decoration-yellow-600 tracking-widest">彼此的祝福牆</h2>
                                         <WordCloud words={players} />
-                                        <div className="text-center text-xs text-yellow-200/60 animate-pulse bg-black/30 py-3 rounded-full italic border border-yellow-600/10">💡 等待主辦方啟動搶答...</div>
+                                        <div className="text-center text-xs text-yellow-200/60 animate-pulse font-bold bg-black/30 py-3 rounded-full italic border border-yellow-600/10">💡 等待主辦方啟動搶答...</div>
                                         {localCountdown !== null && (
                                             <div className="fixed inset-0 z-50 bg-red-950/98 flex flex-col items-center justify-center animate-in fade-in">
-                                                <div className="text-gold font-black text-9xl animate-ping mb-8 drop-shadow-[0_0_20px_gold]">{localCountdown}</div>
-                                                <div className="text-white text-3xl font-black tracking-widest px-10 py-5 rounded-full border-2 border-yellow-500 uppercase">衝刺搶答！</div>
+                                                <div className="text-gold font-black text-9xl animate-ping mb-8 drop-shadow-[0_0_20px_rgba(212,175,55,0.8)]">{localCountdown}</div>
+                                                <div className="text-white text-3xl font-black tracking-widest bg-yellow-600/10 px-10 py-5 rounded-full border-2 border-yellow-500 text-center uppercase">衝刺搶答！</div>
                                             </div>
                                         )}
                                     </div>
@@ -342,112 +371,140 @@
                                     <div className="flex-grow flex flex-col h-full relative">
                                         <WordCloud words={players} isBackground={true} />
                                         
-                                        <div className="flex-grow flex flex-col space-y-4 z-10">
-                                            {/* ✨ 計時器配色優化 ✨ */}
-                                            <div className="flex justify-between items-center bg-red-900/90 p-4 rounded-xl border border-yellow-600/40 relative overflow-hidden shrink-0 mt-2 shadow-2xl">
-                                                <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
-                                                <span className="text-gold text-xl italic font-black">第 {displayQuestionIndex + 1} 題</span>
-                                                <span className={`text-2xl font-mono ${elapsedSeconds >= 6 && currentPhase === 'answering' ? 'text-red-400 animate-pulse' : 'text-white'}`}>
-                                                    ⏱ {currentPhase === 'answering' ? Math.max(0, 8 - Math.floor(elapsedSeconds)) : '0'}s
-                                                </span>
-                                            </div>
-                                            
-                                            <div className="quiz-card text-red-950 p-8 rounded-3xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
-                                                <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[displayQuestionIndex].q}</p>
-                                            </div>
-
-                                            {/* ✨ 選項配色優化：深紅背景 + 金色邊框 ✨ */}
-                                            <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
-                                                {QUESTIONS[displayQuestionIndex].a.map((ans, i) => {
-                                                    const correctRef = QUESTIONS[displayQuestionIndex].correct;
-                                                    const isCorrectIdx = Array.isArray(correctRef) ? correctRef.includes(i) : i === correctRef;
-                                                    
-                                                    let btnClass = "bg-red-950/60 border-yellow-600/50";
-                                                    let statusIcon = null;
-
-                                                    if (currentPhase === 'answering') {
-                                                        if (selectedOption === i) btnClass = "bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20";
-                                                        else if (tempSelectedOption === i) btnClass = "border-yellow-400 bg-red-900/80 scale-[1.02] ring-2 ring-yellow-500/50";
-                                                    } else {
-                                                        if (isCorrectIdx) {
-                                                            btnClass = "bg-green-600 border-green-300 text-white ring-4 ring-green-400/50 shadow-[0_0_15px_rgba(34,197,94,0.6)]";
-                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-white/20 px-2 py-1 rounded-full font-bold">✅ 正確答案 +10 分</span>;
+                                        {(currentPhase === 'question' || currentPhase === 'reveal') ? (
+                                            <div className="flex-grow flex flex-col space-y-4 z-10">
+                                                <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
+                                                    {/* 進度條改為 8 秒內消耗完 */}
+                                                    <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
+                                                    <span className="text-gold text-xl italic">第 {displayQuestionIndex + 1} 題</span>
+                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 6 && elapsedSeconds < 8 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
+                                                        ⏱ {currentPhase === 'reveal' ? '揭曉' : Math.max(0, 8 - Math.floor(elapsedSeconds))}s
+                                                    </span>
+                                                </div>
+                                                <div className="quiz-card text-red-950 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
+                                                    <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[displayQuestionIndex].q}</p>
+                                                </div>
+                                                <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
+                                                    {QUESTIONS[displayQuestionIndex].a.map((ans, i) => {
+                                                        const correctRef = QUESTIONS[displayQuestionIndex].correct;
+                                                        const isThisCorrect = Array.isArray(correctRef) ? correctRef.includes(i) : correctRef === i;
+                                                        const isRevealPhase = currentPhase === 'reveal';
+                                                        
+                                                        let buttonStyle = 'bg-red-950/40 border-yellow-600/30';
+                                                        if (isRevealPhase) {
+                                                            if (isThisCorrect) {
+                                                                buttonStyle = 'bg-green-600 border-white ring-4 ring-green-400/50 scale-[1.02] shadow-[0_0_20px_rgba(34,197,94,0.6)]';
+                                                            } else {
+                                                                buttonStyle = 'bg-gray-800/40 border-gray-700/50 opacity-30 scale-95';
+                                                            }
                                                         } else if (selectedOption === i) {
-                                                            btnClass = "bg-red-700 border-red-400 text-white opacity-90";
-                                                            statusIcon = <span className="flex items-center gap-1 text-xs bg-black/20 px-2 py-1 rounded-full font-bold">❌ 錯誤</span>;
-                                                        } else {
-                                                            btnClass = "opacity-20 bg-gray-900 grayscale";
+                                                            buttonStyle = 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20';
+                                                        } else if (tempSelectedOption === i) {
+                                                            buttonStyle = 'border-yellow-400 bg-red-900/80 ring-2 ring-yellow-500/50 scale-[1.02]';
                                                         }
-                                                    }
 
-                                                    return (
-                                                        <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
-                                                            disabled={currentPhase !== 'answering' || selectedOption !== null}
-                                                            className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-xl overflow-hidden ${btnClass}`}>
-                                                            <span className="relative z-10 flex items-center">
-                                                                <span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}
-                                                            </span>
-                                                            {statusIcon}
-                                                        </button>
-                                                    );
-                                                })}
+                                                        return (
+                                                            <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
+                                                                disabled={selectedOption !== null || elapsedSeconds >= 8}
+                                                                className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${buttonStyle}`}>
+                                                                <span className="relative z-10"><span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}</span>
+                                                                
+                                                                {isRevealPhase && isThisCorrect && (
+                                                                    <div className="flex items-center gap-2 animate-in slide-in-from-right duration-300">
+                                                                        <span className="text-xs bg-white text-green-700 px-2 py-0.5 rounded-full font-black drop-shadow-md">+10分</span>
+                                                                        <Icon name="check-circle" className="w-7 h-7 text-white drop-shadow-md" />
+                                                                    </div>
+                                                                )}
+                                                                {tempSelectedOption === i && selectedOption === null && !isRevealPhase && <Icon name="mouse-pointer-2" className="w-5 h-5 text-yellow-400 animate-pulse" />}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                                
+                                                <div className="h-20 shrink-0 flex items-center justify-center">
+                                                    {currentPhase === 'reveal' ? (
+                                                        <div className="text-white font-black italic animate-pulse text-2xl drop-shadow-md flex items-center gap-3">
+                                                            {lastResultCorrect ? '🔥 答對了！' : '💀 答錯了！'} 
+                                                            <span className="text-sm opacity-60">即將公佈排行...</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
+                                                                <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
+                                                            )}
+                                                            {selectedOption !== null && (
+                                                                <div className="text-yellow-400 font-black italic animate-pulse flex items-center gap-2 text-xl drop-shadow-md"><Icon name="check-circle" className="w-7 h-7" /> 答案已送出，等待結果...</div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                            
-                                            <div className="h-20 shrink-0 flex items-center justify-center">
-                                                {currentPhase === 'answering' && tempSelectedOption !== null && selectedOption === null && (
-                                                    <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl text-2xl animate-in slide-in-from-bottom-5 active:scale-95 border-b-4 border-yellow-800">確認送出答案 ➔</button>
-                                                )}
-                                                {selectedOption !== null && currentPhase === 'answering' && (
-                                                    <div className="text-yellow-400 font-black italic animate-pulse flex items-center gap-2 text-xl drop-shadow-md">
-                                                        <Icon name="check-circle" className="w-7 h-7" /> 答案已送出，等待結果...
-                                                    </div>
-                                                )}
-                                                {currentPhase === 'reveal' && (
-                                                    <div className="text-gold font-black text-xl italic animate-bounce flex items-center gap-2">
-                                                        <Icon name="award" className="w-6 h-6" /> 即將揭曉排行榜...
-                                                    </div>
-                                                )}
+                                        ) : (
+                                            <div className="flex-grow flex flex-col space-y-4 z-10 animate-in zoom-in duration-500 overflow-y-auto no-scrollbar pb-10">
+                                                <div className="text-center pt-4">
+                                                    <div className="text-gold text-5xl font-black mb-2 drop-shadow-lg italic tracking-tighter uppercase">搶答即時戰報</div>
+                                                </div>
+
+                                                <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
+                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時參賽者排行榜</h3>
+                                                    {sortedPlayers.slice(0, 5).map((p, i) => (
+                                                        <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
+                                                            <div className="flex items-center gap-3">
+                                                                <span className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${i === 0 ? 'bg-gold-gradient text-red-900 shadow-lg' : 'bg-red-800'}`}>{i+1}</span>
+                                                                <div>
+                                                                    <div className="font-bold">{p.name}</div>
+                                                                    <div className="text-[10px] text-yellow-200/50 italic leading-none mt-1">"{p.greeting}"</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="font-black text-gold italic leading-none">{p.score}分</div>
+                                                                <div className="text-[8px] text-white/40 mt-0.5">{p.totalTimeTaken?.toFixed(1)}s</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <p className="text-center text-yellow-400 font-bold animate-pulse text-lg italic py-4">等待主辦方切換下一題...</p>
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
 
                                 {gameStep === 'leaderboard' && (
                                     <div className="flex flex-col space-y-4 h-full animate-in slide-in-from-bottom z-10">
-                                        <h2 className="text-4xl font-black text-gold text-center py-4 tracking-widest italic font-serif drop-shadow-md uppercase">英雄英雄榜</h2>
+                                        <h2 className="text-4xl font-black text-gold text-center drop-shadow-md py-4 tracking-widest uppercase italic font-serif">最終參賽者排行榜</h2>
                                         {me && (
                                             <div className="bg-gold-gradient text-red-950 p-6 rounded-3xl border-4 border-white shadow-2xl mb-4 transform scale-105 shrink-0">
                                                 <div className="flex items-center justify-between">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="w-14 h-14 rounded-full bg-red-800 text-white flex items-center justify-center font-black text-2xl border-2 border-white shadow-md">{myRank}</div>
-                                                        <div><div className="font-black text-2xl leading-none">{me.name}</div><div className="text-xs italic opacity-70 mt-1">"{me.greeting}"</div></div>
+                                                        <div className="w-16 h-16 rounded-full bg-red-800 text-white flex items-center justify-center font-black text-3xl border-2 border-white shadow-lg">{myRank}</div>
+                                                        <div><div className="font-black text-3xl leading-tight tracking-tighter">{me.name}</div><div className="text-sm font-bold opacity-80 mt-1 italic">"{me.greeting}"</div></div>
                                                     </div>
                                                     <div className="text-right">
-                                                        <div className="text-3xl font-black italic">{me.score}</div>
-                                                        <div className="text-[10px] uppercase font-black opacity-50 leading-none">Points</div>
-                                                        <div className="text-[8px] opacity-40 font-bold mt-1">{me.totalTimeTaken?.toFixed(1)}s</div>
+                                                        <div className="text-4xl font-black italic">{me.score}</div>
+                                                        <div className="text-[10px] uppercase font-black opacity-50">Points</div>
+                                                        <div className="text-[8px] font-bold opacity-30 italic">{me.totalTimeTaken?.toFixed(1)}s</div>
                                                     </div>
                                                 </div>
+                                                {me.prize && <div className="mt-4 pt-3 border-t border-red-950/10 text-center bg-red-800 text-white px-3 py-2 rounded-2xl shadow-inner font-black text-sm italic animate-pulse">🎉 榮獲獎項：{me.prize}</div>}
                                             </div>
                                         )}
-                                        <div className="flex-grow bg-black/40 rounded-3xl p-3 border-2 border-yellow-700/20 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
-                                            {sortedPlayers.filter(p => p.id !== user.uid).map((p) => {
+                                        <div className="flex-grow bg-black/30 rounded-3xl p-3 border-2 border-yellow-600/10 space-y-2 overflow-y-auto no-scrollbar shadow-inner text-sm mb-6">
+                                            {others.length > 0 ? others.map((p) => {
                                                 const r = sortedPlayers.findIndex(x => x.id === p.id) + 1;
                                                 return (
-                                                    <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 shadow-sm transition-all">
+                                                    <div key={p.id} className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/5 shadow-sm transition-all active:scale-[0.98]">
                                                         <div className="flex items-center gap-4">
-                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${r <= 3 ? 'bg-gold-gradient text-red-900 shadow-md' : 'bg-red-900 shadow-inner'}`}>{r}</div>
-                                                            <div className="font-bold text-lg text-yellow-50">{p.name}</div>
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${r <= 3 ? 'bg-gold-gradient text-red-900 shadow-md' : 'bg-red-950/50'}`}>{r}</div>
+                                                            <div><div className="font-bold text-lg">{p.name}</div><div className="text-[10px] text-yellow-200/40 italic">"{p.greeting}"</div></div>
                                                         </div>
                                                         <div className="text-right">
                                                             <div className="font-black text-xl text-gold">{p.score}分</div>
-                                                            <div className="text-[9px] opacity-30 italic">{p.totalTimeTaken?.toFixed(1)}s</div>
+                                                            <div className="text-[9px] opacity-20 italic">{p.totalTimeTaken?.toFixed(1)}s</div>
                                                         </div>
                                                     </div>
                                                 );
-                                            })}
+                                            }) : <div className="py-20 text-center opacity-30 italic text-yellow-50 font-black tracking-widest animate-pulse uppercase italic">結算中，請稍候...</div>}
                                         </div>
-                                        <p className="text-center text-yellow-400 font-bold animate-pulse text-lg pb-4 italic">等待主辦方啟動下一題...</p>
                                     </div>
                                 )}
                             </div>
@@ -460,11 +517,15 @@
                             {[...Array(25)].map((_, i) => (
                                 <div key={i} className="confetti" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 2}s`, backgroundColor: ['#fbbf24', '#f59e0b', '#d4af37', '#ffffff'][i % 4] }}></div>
                             ))}
-                            <div className="bg-white rounded-[50px] w-full max-sm:max-w-sm overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.6)] relative z-10 border-8 border-yellow-500 animate-bounce-short text-center">
-                                <div className="bg-gold-gradient p-10 relative shadow-md"><div className="text-red-700 text-7xl mb-4 animate-bounce">🧧</div><h2 className="text-red-950 font-black text-4xl italic">大獎開出！</h2></div>
-                                <div className="p-10 space-y-6 bg-white">
-                                    <div><p className="text-gray-400 italic font-bold">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter">{globalCelebration.name}</p></div>
-                                    <div className="py-6 bg-red-50 rounded-[40px] border-4 border-red-100 shadow-inner"><p className="text-red-900 font-black text-3xl italic underline decoration-yellow-600/20">{globalCelebration.prize}</p></div>
+                            <div className="bg-white rounded-[50px] w-full max-sm:max-w-sm overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.6)] relative z-10 border-8 border-yellow-500 animate-bounce-short">
+                                <div className="bg-gold-gradient p-10 text-center relative shadow-lg">
+                                    <div className="text-red-700 text-7xl mb-4 drop-shadow-lg animate-bounce">🧧</div>
+                                    <h2 className="text-red-950 font-black text-4xl mb-1 italic tracking-tighter">大獎開出！</h2>
+                                    <p className="text-red-900/60 font-bold uppercase tracking-widest text-xs">Winner Announcement</p>
+                                </div>
+                                <div className="p-10 text-center space-y-8 bg-white">
+                                    <div><p className="text-gray-400 font-bold text-sm italic">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter drop-shadow-sm">{globalCelebration.name}</p></div>
+                                    <div className="py-8 px-5 bg-red-50 rounded-[40px] border-4 border-red-100 shadow-inner"><p className="text-red-500 font-bold text-xs mb-1 italic tracking-widest uppercase">獲得獎項</p><p className="text-red-900 font-black text-4xl italic tracking-tight underline decoration-yellow-600/30">{globalCelebration.prize}</p></div>
                                 </div>
                             </div>
                         </div>
@@ -499,7 +560,7 @@
                     setActiveTab('control');
                     setConfirmReset(false);
                     setSelectedId('');
-                } catch (e) { console.error(e); }
+                } catch (e) { console.error("Reset failed:", e); }
             };
 
             const startGlobalCountdown = async () => {
@@ -535,15 +596,19 @@
 
             const confirmPrize = async () => {
                 if (!pendingResult) return;
-                const pool = prizesPool;
+                const { id, name, prize, poolIndex } = pendingResult;
                 const batch = db.batch();
-                batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(pendingResult.id), { prize: pendingResult.prize });
-                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { prizesPool: pool.filter((_, idx) => idx !== pendingResult.poolIndex), lastWinner: { name: pendingResult.name, prize: pendingResult.prize, timestamp: Date.now() } }, { merge: true });
+                batch.update(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(id), { prize: prize });
+                batch.set(db.collection('artifacts').doc(appId).collection('public').doc('data').collection('settings').doc('gameState'), { prizesPool: prizesPool.filter((_, idx) => idx !== poolIndex), lastWinner: { name, prize, timestamp: Date.now() } }, { merge: true });
                 await batch.commit();
-                setPendingResult(null); setSelectedId('');
+                setPendingResult(null);
+                setSelectedId('');
             };
 
-            const TABS = [{ id: 'control', name: '題目詳情', icon: 'book-open' }, { id: 'prizes', name: '抽獎轉盤', icon: 'disc' }];
+            const TABS = [
+                { id: 'control', name: '題目詳情', icon: 'book-open' },
+                { id: 'prizes', name: '抽獎轉盤', icon: 'disc' }
+            ];
 
             return (
                 <div className="flex flex-col h-full overflow-hidden">
@@ -558,10 +623,10 @@
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-2">
                                         <span className="text-xs bg-gold-gradient text-red-950 px-2 py-0.5 rounded-full font-black uppercase">LIVE</span>
-                                        <span className="text-gold font-black text-xl italic tracking-tighter">Q{gameState.currentQuestionIndex + 1} ({currentPhase === 'answering' ? '答題中' : '結果展示'})</span>
+                                        <span className="text-gold font-black text-xl italic tracking-tighter">Q{gameState.currentQuestionIndex + 1} ({currentPhase === 'question' ? '答題中' : currentPhase === 'reveal' ? '揭曉中' : '戰報展示'})</span>
                                     </div>
                                     <div className="text-2xl font-mono text-white bg-black/40 px-3 py-1 rounded-lg border border-white/10 shadow-inner">
-                                        ⏱ {currentPhase === 'answering' ? Math.max(0, 8 - Math.floor(elapsedSeconds)) : 0}s
+                                        ⏱ {currentPhase === 'question' ? Math.max(0, 8 - Math.floor(elapsedSeconds)) : 0}s
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -588,14 +653,20 @@
                                                 const isCompleted = idx < gameState.currentQuestionIndex;
                                                 const isLive = idx === gameState.currentQuestionIndex;
                                                 const isSelected = selectedQuestionTab === idx;
+                                                
                                                 let tabStyle = "bg-red-950/40 border-yellow-600/20 text-yellow-500/60";
                                                 if (isCompleted) tabStyle = "bg-green-gradient text-white border-white/30 shadow-md";
                                                 else if (isLive) tabStyle = "bg-gold-gradient text-red-950 border-white shadow-[0_0_10px_gold]";
+                                                
                                                 return (
                                                     <button key={idx} onClick={() => setSelectedQuestionTab(idx)} 
                                                         className={`w-12 h-12 rounded-full shrink-0 font-black transition-all border-2 flex items-center justify-center relative ${tabStyle} ${isSelected ? 'ring-4 ring-yellow-400/50 scale-110 z-10' : 'opacity-80'}`}>
                                                         <span className="text-lg">{idx + 1}</span>
-                                                        {isCompleted && <div className="absolute -top-1 -right-1 bg-green-950 rounded-full p-0.5 border border-white"><Icon name="check" className="w-2.5 h-2.5 text-white" /></div>}
+                                                        {isCompleted && (
+                                                            <div className="absolute -top-1 -right-1 bg-green-950 rounded-full p-0.5 border border-white">
+                                                                <Icon name="check" className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                        )}
                                                     </button>
                                                 );
                                             })}
@@ -604,7 +675,8 @@
                                         {selectedQuestionTab !== null && (
                                             <div className="space-y-4">
                                                 <div className="bg-white/95 rounded-3xl p-6 shadow-xl text-red-900 border-b-4 border-yellow-600/30">
-                                                    <p className="text-lg font-black italic mb-4 leading-snug font-bold">{QUESTIONS[selectedQuestionTab].q}</p>
+                                                    <div className="flex items-center gap-2 mb-2 text-gold font-bold uppercase text-[10px] tracking-widest"><Icon name="help-circle" className="w-3 h-3 text-red-700" /> Question Context</div>
+                                                    <p className="text-lg font-black italic mb-4 leading-snug">{QUESTIONS[selectedQuestionTab].q}</p>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {QUESTIONS[selectedQuestionTab].a.map((ans, i) => {
                                                             const correctRef = QUESTIONS[selectedQuestionTab].correct;
@@ -617,9 +689,10 @@
                                                         })}
                                                     </div>
                                                 </div>
+
                                                 <div className="bg-red-950/60 rounded-3xl overflow-hidden border border-yellow-600/20 shadow-2xl">
-                                                    <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex justify-between shadow-sm"><span>答題詳情 (Q{selectedQuestionTab+1})</span></div>
-                                                    <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center">
+                                                    <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex justify-between"><span>答題詳情 (Q{selectedQuestionTab+1})</span></div>
+                                                    <div className="grid grid-cols-4 gap-1 p-2 bg-black/40 text-center border-b border-white/5">
                                                         {(() => {
                                                             const stats = [0, 0, 0, 0];
                                                             players.forEach(p => { 
@@ -641,10 +714,16 @@
                                                             const hasChoice = userChoice !== undefined && userChoice !== null;
                                                             const correctRef = QUESTIONS[selectedQuestionTab].correct;
                                                             const isCorrectChoice = hasChoice && (Array.isArray(correctRef) ? correctRef.includes(userChoice) : userChoice === correctRef);
+                                                            
                                                             return (
-                                                                <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs hover:bg-white/5 transition-colors">
-                                                                    <div className="font-bold flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400 shadow-[0_0_5px_green]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div><span className="truncate max-w-[120px] text-yellow-100">{p.name}</span></div>
-                                                                    <div className={`font-black italic text-right ${hasChoice && isCorrectChoice ? 'text-green-400' : 'text-yellow-500/30'}`}>{hasChoice ? `選 ${String.fromCharCode(65 + userChoice)}` : '等待中...'}</div>
+                                                                <div key={p.id} className="grid grid-cols-2 p-2.5 items-center text-xs transition-colors hover:bg-white/5">
+                                                                    <div className="font-bold flex items-center gap-2">
+                                                                        <div className={`w-2 h-2 rounded-full ${hasChoice ? 'bg-green-400 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500 animate-pulse shadow-[0_0_5px_red]'}`}></div>
+                                                                        <span className="truncate max-w-[120px]">{p.name}</span>
+                                                                    </div>
+                                                                    <div className={`font-black italic text-right ${hasChoice && isCorrectChoice ? 'text-green-400 drop-shadow-md' : 'text-yellow-500/30'}`}>
+                                                                        {hasChoice ? `選 ${String.fromCharCode(65 + userChoice)}` : '等待中...'}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })}
@@ -666,10 +745,12 @@
                                                     const midAngle = (i * angle) + (angle / 2) - 90;
                                                     const textX = 150 + 95 * Math.cos(midAngle * Math.PI / 180);
                                                     const textY = 150 + 95 * Math.sin(midAngle * Math.PI / 180);
-                                                    const x1 = 150 + 150 * Math.cos((i * angle - 90) * Math.PI / 180);
-                                                    const y1 = 150 + 150 * Math.sin((i * angle - 90) * Math.PI / 180);
-                                                    const x2 = 150 + 150 * Math.cos(((i + 1) * angle - 90) * Math.PI / 180);
-                                                    const y2 = 150 + 150 * Math.sin(((i + 1) * angle - 90) * Math.PI / 180);
+                                                    const startA = i * angle;
+                                                    const endA = (i + 1) * angle;
+                                                    const x1 = 150 + 150 * Math.cos((startA - 90) * Math.PI / 180);
+                                                    const y1 = 150 + 150 * Math.sin((startA - 90) * Math.PI / 180);
+                                                    const x2 = 150 + 150 * Math.cos((endA - 90) * Math.PI / 180);
+                                                    const y2 = 150 + 150 * Math.sin((endA - 90) * Math.PI / 180);
                                                     return (
                                                         <g key={i}>
                                                             <path d={`M 150 150 L ${x1} ${y1} A 150 150 0 0 1 ${x2} ${y2} Z`} fill={colors[i % colors.length]} stroke="#d4af37" strokeWidth="1" />
@@ -681,11 +762,11 @@
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-4 w-10 h-10 bg-gold-gradient z-20 border-2 border-white shadow-2xl" style={{ clipPath: 'polygon(50% 100%, 0% 0%, 100% 0%)' }}></div>
                                         </div>
                                         <div className="w-full space-y-4 px-2">
-                                            <select className="w-full p-4 bg-red-950 border-2 border-yellow-600 rounded-2xl text-lg font-black text-white outline-none appearance-none" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+                                            <select className="w-full p-4 bg-red-950 border-2 border-yellow-600 rounded-2xl text-lg font-black text-white outline-none appearance-none shadow-xl transition-all focus:border-yellow-400" value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
                                                 <option value="">-- 選擇得獎參賽者 --</option>
                                                 {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                                             </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className="w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1">🎉 撥動開獎</button>
+                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
                                         </div>
                                     </div>
                                 )}
@@ -693,18 +774,23 @@
                         </div>
 
                         <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
-                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>英雄排行榜 (耗時)</span></div>
+                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時參賽者排行榜 (耗時)</span></div>
                             <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
                                 {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
-                                    <div key={p.id} className="flex items-center justify-between p-3.5 hover:bg-white/5 transition-colors">
+                                    <div key={p.id} className={`flex items-center justify-between p-3.5 transition-colors ${p.id === user?.uid ? 'bg-yellow-600/20' : ''}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-900' : 'bg-red-900'}`}>{i + 1}</div>
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-900 shadow-[0_0_12px_gold]' : i === 1 ? 'bg-slate-300 text-red-950' : i === 2 ? 'bg-amber-600 text-red-950 shadow-md' : 'bg-red-900 text-white/50'}`}>{i + 1}</div>
                                             <div className="flex flex-col">
-                                                <span className="font-bold text-sm tracking-tight truncate max-w-[100px] text-yellow-50">{p.name}</span>
-                                                {p.prize && <span className="text-[9px] text-yellow-400 font-black italic">🧧 {p.prize}</span>}
+                                                <span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>
+                                                {/* 調整處：在此加入新年賀詞展現延續祝賀效果 */}
+                                                <span className="text-[10px] text-yellow-200/50 italic font-medium leading-tight">"{p.greeting}"</span>
+                                                {p.prize && <span className="text-[9px] text-yellow-400 font-black italic animate-in slide-in-from-left-1 duration-700">🧧 {p.prize}</span>}
                                             </div>
                                         </div>
-                                        <div className="text-right"><div className="text-gold font-black text-xl italic drop-shadow-sm">{p.score}分</div><div className="text-[9px] text-white/40">{p.totalTimeTaken?.toFixed(1)}s</div></div>
+                                        <div className="text-right">
+                                            <div className="text-gold font-black text-xl italic tabular-nums leading-none">{p.score}分</div>
+                                            <div className="text-[9px] text-white/40 font-bold uppercase mt-1">累積耗時: {p.totalTimeTaken?.toFixed(1)}s</div>
+                                        </div>
                                     </div>
                                 )) : <div className="p-12 text-center text-white/20 italic text-xs uppercase tracking-widest animate-pulse font-black">Waiting for heroes...</div>}
                             </div>
@@ -712,12 +798,20 @@
                     </div>
 
                     {pendingResult && (
-                        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-6 animate-in zoom-in">
-                            <div className="bg-white rounded-[60px] w-full max-sm:max-w-sm p-10 text-center border-8 border-yellow-500 shadow-2xl">
-                                <h2 className="text-3xl font-black text-red-900 mb-4 italic font-bold">恭喜中獎！</h2>
-                                <p className="text-4xl font-black text-gray-900 mb-6">{pendingResult.name}</p>
-                                <div className="bg-red-50 p-6 rounded-3xl border-4 border-red-100 mb-8 font-black text-3xl text-red-900 shadow-inner">{pendingResult.prize}</div>
-                                <button onClick={confirmPrize} className="w-full py-5 bg-gold-gradient rounded-2xl font-black text-xl shadow-xl text-red-900 active:scale-95 border-b-4 border-yellow-700 uppercase italic">確認並發送 ➔</button>
+                        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
+                            <div className="bg-white rounded-[60px] w-full max-w-sm overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.8)] border-8 border-yellow-500 transform animate-in zoom-in duration-500">
+                                <div className="bg-gold-gradient p-8 text-center relative shadow-lg"><div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 p-4 rounded-full border-4 border-white shadow-2xl"><Icon name="trophy" className="text-yellow-400 w-10 h-10" /></div><h2 className="text-red-950 font-black text-3xl mt-4 italic tracking-tighter">獲獎驗證！</h2></div>
+                                <div className="p-10 text-center space-y-8 bg-white">
+                                    <div><p className="text-gray-400 font-bold text-sm uppercase italic">得獎參賽者</p><p className="text-gray-900 font-black text-4xl tracking-tighter">{pendingResult.name}</p></div>
+                                    <div className="py-6 px-4 bg-red-50 rounded-[30px] border-4 border-red-100 shadow-inner">
+                                        <p className="text-red-500 font-bold text-xs uppercase mb-1 italic">確認核發獎項</p>
+                                        <p className="text-red-900 font-black text-3xl italic tracking-tight">{pendingResult.prize}</p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button onClick={() => { setPendingResult(null); setSelectedId(''); }} className="flex-1 py-4 text-gray-400 font-bold hover:text-red-500 text-sm italic">重抽</button>
+                                        <button onClick={confirmPrize} className="flex-[3] py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-xl border-b-8 border-yellow-700 active:translate-y-1 text-xl italic uppercase tracking-widest">確認並廣播訊息</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

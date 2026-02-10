@@ -195,7 +195,7 @@
             useEffect(() => {
                 if (!gameState.phaseStartTime || !gameState.isGameStarted) return;
                 const timer = setInterval(() => {
-                    const diff = Math.floor((Date.now() - gameState.phaseStartTime) / 1000);
+                    const diff = (Date.now() - gameState.phaseStartTime) / 1000;
                     setElapsedSeconds(diff);
                 }, 100);
                 return () => clearInterval(timer);
@@ -226,11 +226,10 @@
                 if (currentPhase === 'final' && gameStep === 'quiz') setGameStep('leaderboard');
             }, [currentPhase, gameStep]);
 
-            // ✨ 修改排序邏輯：同分比總耗時 ✨
+            // ✨ 修改排序邏輯：分數優先，耗時其次 ✨
             const sortedPlayers = useMemo(() => {
                 return [...players].sort((a, b) => {
                     if (b.score !== a.score) return b.score - a.score;
-                    // 同分比總秒數 (愈小愈前面)
                     return (a.totalTimeTaken || 0) - (b.totalTimeTaken || 0);
                 });
             }, [players]);
@@ -250,29 +249,36 @@
             };
 
             const handleConfirmAnswer = async () => {
-                // ✨ 寬限判斷時間：設為 9.5 秒以彌補網路時差 ✨
-                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 9.5) return;
+                // ✨ 修正：取消嚴格的 elapsedSeconds 限制，改為由按鈕消失控制。✨
+                // 為了防止極端時差，設一個 12 秒的物理上限
+                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds > 12) return;
+                
+                const timeSpent = Math.min(8.0, elapsedSeconds); // 紀錄當下秒數，上限為 8s
                 const index = tempSelectedOption;
-                setSelectedOption(index); 
                 
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
                 
-                // ✨ 本地即時鎖定對錯狀態 ✨
+                // ✨ 立即在本地更新狀態，防止 UI 顯示未能即時確認 ✨
+                setSelectedOption(index); 
                 setLastResultCorrect(isCorrect);
                 
-                const playerRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid);
-                const currentData = (await playerRef.get()).data();
-                
-                const newScore = isCorrect ? (currentData?.score || 0) + 10 : (currentData?.score || 0);
-                // 累積答題秒數
-                const newTotalTime = (currentData?.totalTimeTaken || 0) + elapsedSeconds;
-                
-                await playerRef.update({ 
-                    score: newScore,
-                    totalTimeTaken: newTotalTime,
-                    [`answers.${gameState.currentQuestionIndex}`]: index 
-                });
+                try {
+                    const playerRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid);
+                    const snap = await playerRef.get();
+                    const currentData = snap.data();
+                    
+                    const newScore = isCorrect ? (currentData?.score || 0) + 10 : (currentData?.score || 0);
+                    const newTotalTime = (currentData?.totalTimeTaken || 0) + timeSpent;
+                    
+                    await playerRef.update({ 
+                        score: newScore,
+                        totalTimeTaken: parseFloat(newTotalTime.toFixed(2)),
+                        [`answers.${gameState.currentQuestionIndex}`]: index 
+                    });
+                } catch (err) {
+                    console.error("Submit Error:", err);
+                }
             };
 
             return (
@@ -345,7 +351,7 @@
                                                 <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
                                                     <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
                                                     <span className="text-gold text-xl italic">第 {gameState.currentQuestionIndex + 1} 題</span>
-                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 6 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 8 - elapsedSeconds)}s</span>
+                                                    <span className={`text-2xl font-mono ${elapsedSeconds >= 6 ? 'text-red-400 animate-pulse' : 'text-white'}`}>⏱ {Math.max(0, 8 - Math.floor(elapsedSeconds))}s</span>
                                                 </div>
                                                 <div className="quiz-card text-red-950 p-8 rounded-3xl shadow-2xl min-h-[140px] flex items-center justify-center text-center shrink-0 border-b-8 border-yellow-600/30">
                                                     <p className="text-2xl font-black text-red-900 leading-tight">{QUESTIONS[gameState.currentQuestionIndex].q}</p>
@@ -353,7 +359,7 @@
                                                 <div className="grid grid-cols-1 gap-3 flex-grow overflow-y-auto no-scrollbar pb-2">
                                                     {QUESTIONS[gameState.currentQuestionIndex].a.map((ans, i) => (
                                                         <button key={i} onClick={() => selectedOption === null && setTempSelectedOption(i)} 
-                                                            disabled={selectedOption !== null || elapsedSeconds >= 8}
+                                                            disabled={selectedOption !== null || elapsedSeconds >= 8.2}
                                                             className={`relative p-5 border-2 rounded-2xl transition-all text-left font-black text-xl flex items-center justify-between shadow-lg overflow-hidden ${selectedOption === i ? 'bg-gold-gradient text-red-900 border-white ring-4 ring-yellow-400/20' : tempSelectedOption === i ? 'border-yellow-400 bg-red-900/80 ring-2 ring-yellow-500/50 scale-[1.02]' : 'bg-red-950/40 border-yellow-600/30'}`}>
                                                             <span className="relative z-10"><span className="mr-3 opacity-50 font-mono text-sm">{String.fromCharCode(65 + i)}</span> {ans}</span>
                                                             {tempSelectedOption === i && selectedOption === null && <Icon name="mouse-pointer-2" className="w-5 h-5 text-yellow-400 animate-pulse" />}
@@ -362,7 +368,7 @@
                                                 </div>
                                                 
                                                 <div className="h-20 shrink-0 flex items-center justify-center">
-                                                    {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
+                                                    {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8.2 && (
                                                         <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
                                                     )}
                                                     {selectedOption !== null && (
@@ -556,7 +562,7 @@
                                         <span className="text-gold font-black text-xl italic tracking-tighter">Q{gameState.currentQuestionIndex + 1} ({currentPhase === 'question' ? '答題中' : '戰報展示'})</span>
                                     </div>
                                     <div className="text-2xl font-mono text-white bg-black/40 px-3 py-1 rounded-lg border border-white/10 shadow-inner">
-                                        ⏱ {currentPhase === 'question' ? Math.max(0, 8 - elapsedSeconds) : 0}s
+                                        ⏱ {currentPhase === 'question' ? Math.max(0, 8 - Math.floor(elapsedSeconds)) : 0}s
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -696,7 +702,7 @@
                                                 <option value="">-- 選擇得獎英雄 --</option>
                                                 {sortedPlayers.map((p, i) => <option key={p.id} value={p.id} disabled={!!p.prize} className="text-red-900 font-bold">#{i+1} {p.name} {p.prize ? `(${p.prize})` : ''}</option>)}
                                             </select>
-                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-950 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
+                                            <button onClick={handleSpin} disabled={spinning || !selectedId || prizesPool.length === 0} className={`w-full py-6 rounded-3xl font-black text-2xl shadow-2xl border-b-8 transition-all ${spinning || !selectedId || prizesPool.length === 0 ? 'bg-gray-600 border-gray-800 scale-95 opacity-50' : 'bg-gold-gradient text-red-900 border-yellow-700 active:translate-y-1'}`}>{spinning ? '命運轉動中...' : '🎉 撥動開獎'}</button>
                                         </div>
                                     </div>
                                 )}
@@ -704,15 +710,21 @@
                         </div>
 
                         <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
-                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時戰績排行</span></div>
+                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時英雄榜 (耗時)</span></div>
                             <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
                                 {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
                                     <div key={p.id} className={`flex items-center justify-between p-3.5 transition-colors ${p.id === user?.uid ? 'bg-yellow-600/20' : ''}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-950 shadow-[0_0_12px_gold]' : i === 1 ? 'bg-slate-300 text-red-950' : i === 2 ? 'bg-amber-600 text-red-950 shadow-md' : 'bg-red-900 text-white/50'}`}>{i + 1}</div>
-                                            <div className="flex flex-col"><span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>{p.prize && <span className="text-[9px] text-yellow-400 font-black italic animate-in slide-in-from-left-1 duration-700">🧧 {p.prize}</span>}</div>
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-900 shadow-[0_0_12px_gold]' : i === 1 ? 'bg-slate-300 text-red-950' : i === 2 ? 'bg-amber-600 text-red-950 shadow-md' : 'bg-red-900 text-white/50'}`}>{i + 1}</div>
+                                            <div className="flex flex-col">
+                                                <span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>
+                                                {p.prize && <span className="text-[9px] text-yellow-400 font-black italic animate-in slide-in-from-left-1 duration-700">🧧 {p.prize}</span>}
+                                            </div>
                                         </div>
-                                        <div className="text-right"><div className="text-gold font-black text-xl italic tabular-nums">{p.score}</div></div>
+                                        <div className="text-right">
+                                            <div className="text-gold font-black text-xl italic tabular-nums leading-none">{p.score}分</div>
+                                            <div className="text-[9px] text-white/40 font-bold uppercase mt-1">累積耗時: {p.totalTimeTaken?.toFixed(1)}s</div>
+                                        </div>
                                     </div>
                                 )) : <div className="p-12 text-center text-white/20 italic text-xs uppercase tracking-widest animate-pulse font-black">Waiting for heroes...</div>}
                             </div>

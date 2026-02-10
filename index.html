@@ -1,9 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" class="bg-[#450a0a]">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>2026年達豐 & 明定 春酒搶答大賽</title>
+    
+    <!-- 手機端顏色優化：將網址列改為深紅色，解決圖片中的白色區域問題 -->
+    <meta name="theme-color" content="#450a0a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -13,13 +19,23 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        :root { --app-height: 100dvh; }
+        :root { 
+            --app-height: 100dvh; 
+        }
+        html, body {
+            height: 100%;
+            background-color: #450a0a; /* 確保全域背景一致 */
+            margin: 0;
+            padding: 0;
+        }
         body {
             height: var(--app-height);
-            margin: 0;
             background: radial-gradient(circle at center, #991b1b 0%, #7f1d1d 50%, #450a0a 100%);
             overflow: hidden;
             touch-action: manipulation;
+            /* 處理 iPhone 瀏海與底部橫條的間距 */
+            padding-top: env(safe-area-inset-top);
+            padding-bottom: env(safe-area-inset-bottom);
         }
         .bg-gold-gradient { background: linear-gradient(135deg, #d4af37 0%, #f9e498 50%, #b8860b 100%); }
         .bg-green-gradient { background: linear-gradient(135deg, #15803d 0%, #22c55e 50%, #166534 100%); }
@@ -94,7 +110,7 @@
             { q: "3 月輪到哪 2 位同事，分別來清理掃地機器人 & 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
             { q: "公司新購買的微波爐，是哪一個廠牌？", a: ["Panasonic", "SAMPO", "Whirpool", "TOSHIBA"], correct: 2 },
             { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的營食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
-            { q: "哪一間離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
+            { q: "下列哪一間是離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
             { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
 
@@ -189,7 +205,6 @@
                             setGameState(data);
 
                             const diff = (Date.now() - data.phaseStartTime) / 1000;
-                            // 調整處：延長鎖定當前題目畫面的時間至 12 秒
                             if (diff < 12 || data.viewMode === 'final') {
                                 setDisplayQuestionIndex(data.currentQuestionIndex);
                             }
@@ -227,7 +242,7 @@
             const currentPhase = useMemo(() => {
                 if (gameState.viewMode === 'final') return 'final';
                 if (elapsedSeconds < 8) return 'question'; 
-                if (elapsedSeconds < 12) return 'reveal'; // 調整處：原地揭曉延長至 12 秒
+                if (elapsedSeconds < 12) return 'reveal'; 
                 return 'rank'; 
             }, [elapsedSeconds, gameState.viewMode]);
 
@@ -274,7 +289,6 @@
             };
 
             const handleConfirmAnswer = async () => {
-                // 嚴格防止延遲補點：超過 8.0 秒即視為無效操作
                 if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds >= 8.0) return;
                 
                 const questionIdxAtSubmit = gameState.currentQuestionIndex;
@@ -374,7 +388,6 @@
                                         {(currentPhase === 'question' || currentPhase === 'reveal') ? (
                                             <div className="flex-grow flex flex-col space-y-4 z-10">
                                                 <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
-                                                    {/* 進度條改為 8 秒內消耗完 */}
                                                     <div className="absolute top-0 left-0 h-1 progress-bar" style={{ width: `${Math.max(0, 8 - elapsedSeconds) * 12.5}%` }}></div>
                                                     <span className="text-gold text-xl italic">第 {displayQuestionIndex + 1} 題</span>
                                                     <span className={`text-2xl font-mono ${elapsedSeconds >= 6 && elapsedSeconds < 8 ? 'text-red-400 animate-pulse' : 'text-white'}`}>
@@ -423,8 +436,9 @@
                                                 
                                                 <div className="h-20 shrink-0 flex items-center justify-center">
                                                     {currentPhase === 'reveal' ? (
-                                                        <div className="text-white font-black italic animate-pulse text-2xl drop-shadow-md flex items-center gap-3">
+                                                        <div className="text-white font-black italic animate-pulse text-2xl drop-shadow-md flex items-center gap-3 text-center">
                                                             {lastResultCorrect ? '🔥 答對了！' : '💀 答錯了！'} 
+                                                            <br className="sm:hidden" />
                                                             <span className="text-sm opacity-60">即將公佈排行...</span>
                                                         </div>
                                                     ) : (
@@ -520,8 +534,8 @@
                             <div className="bg-white rounded-[50px] w-full max-sm:max-w-sm overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.6)] relative z-10 border-8 border-yellow-500 animate-bounce-short">
                                 <div className="bg-gold-gradient p-10 text-center relative shadow-lg">
                                     <div className="text-red-700 text-7xl mb-4 drop-shadow-lg animate-bounce">🧧</div>
-                                    <h2 className="text-red-950 font-black text-4xl mb-1 italic tracking-tighter">大獎開出！</h2>
-                                    <p className="text-red-900/60 font-bold uppercase tracking-widest text-xs">Winner Announcement</p>
+                                    <h2 className="text-red-950 font-black text-4xl mb-1 italic tracking-tighter text-center">大獎開出！</h2>
+                                    <p className="text-red-900/60 font-bold uppercase tracking-widest text-xs text-center">Winner Announcement</p>
                                 </div>
                                 <div className="p-10 text-center space-y-8 bg-white">
                                     <div><p className="text-gray-400 font-bold text-sm italic">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter drop-shadow-sm">{globalCelebration.name}</p></div>
@@ -782,7 +796,6 @@
                                             <div className={`w-7 h-7 rounded-full flex items-center justify-center font-black text-xs ${i === 0 ? 'bg-gold-gradient text-red-900 shadow-[0_0_12px_gold]' : i === 1 ? 'bg-slate-300 text-red-950' : i === 2 ? 'bg-amber-600 text-red-950 shadow-md' : 'bg-red-900 text-white/50'}`}>{i + 1}</div>
                                             <div className="flex flex-col">
                                                 <span className="font-bold text-sm tracking-tight truncate max-w-[100px]">{p.name}</span>
-                                                {/* 調整處：在此加入新年賀詞展現延續祝賀效果 */}
                                                 <span className="text-[10px] text-yellow-200/50 italic font-medium leading-tight">"{p.greeting}"</span>
                                                 {p.prize && <span className="text-[9px] text-yellow-400 font-black italic animate-in slide-in-from-left-1 duration-700">🧧 {p.prize}</span>}
                                             </div>
@@ -800,12 +813,12 @@
                     {pendingResult && (
                         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
                             <div className="bg-white rounded-[60px] w-full max-w-sm overflow-hidden shadow-[0_0_60px_rgba(212,175,55,0.8)] border-8 border-yellow-500 transform animate-in zoom-in duration-500">
-                                <div className="bg-gold-gradient p-8 text-center relative shadow-lg"><div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 p-4 rounded-full border-4 border-white shadow-2xl"><Icon name="trophy" className="text-yellow-400 w-10 h-10" /></div><h2 className="text-red-950 font-black text-3xl mt-4 italic tracking-tighter">獲獎驗證！</h2></div>
+                                <div className="bg-gold-gradient p-8 text-center relative shadow-lg"><div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-red-800 p-4 rounded-full border-4 border-white shadow-2xl"><Icon name="trophy" className="text-yellow-400 w-10 h-10" /></div><h2 className="text-red-950 font-black text-3xl mt-4 italic tracking-tighter text-center">獲獎驗證！</h2></div>
                                 <div className="p-10 text-center space-y-8 bg-white">
-                                    <div><p className="text-gray-400 font-bold text-sm uppercase italic">得獎參賽者</p><p className="text-gray-900 font-black text-4xl tracking-tighter">{pendingResult.name}</p></div>
+                                    <div><p className="text-gray-400 font-bold text-sm uppercase italic text-center">得獎參賽者</p><p className="text-gray-900 font-black text-4xl tracking-tighter text-center">{pendingResult.name}</p></div>
                                     <div className="py-6 px-4 bg-red-50 rounded-[30px] border-4 border-red-100 shadow-inner">
-                                        <p className="text-red-500 font-bold text-xs uppercase mb-1 italic">確認核發獎項</p>
-                                        <p className="text-red-900 font-black text-3xl italic tracking-tight">{pendingResult.prize}</p>
+                                        <p className="text-red-500 font-bold text-xs uppercase mb-1 italic text-center">確認核發獎項</p>
+                                        <p className="text-red-900 font-black text-3xl italic tracking-tight text-center">{pendingResult.prize}</p>
                                     </div>
                                     <div className="flex gap-3">
                                         <button onClick={() => { setPendingResult(null); setSelectedId(''); }} className="flex-1 py-4 text-gray-400 font-bold hover:text-red-500 text-sm italic">重抽</button>

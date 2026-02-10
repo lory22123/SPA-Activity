@@ -113,35 +113,18 @@
         const INITIAL_PRIZES = ["8888元", "6666元", "3600元", "2000元", "1200元", "600元", "馬年金幣", "加碼獎", "驚喜禮包"];
 
         const WordCloud = ({ words, isBackground = false }) => {
-            const slots = [
-                { t: 10, l: 15, rot: -4 }, { t: 25, l: 55, rot: 6 }, { t: 40, l: 10, rot: -8 },
-                { t: 55, l: 65, rot: 4 }, { t: 65, l: 15, rot: 10 }, { t: 78, l: 50, rot: -4 },
-                { t: 88, l: 20, rot: 8 }, { t: 45, l: 75, rot: -10 }, { t: 5, l: 45, rot: 5 }
-            ];
+            const slots = [{ t: 10, l: 15, rot: -4 }, { t: 25, l: 55, rot: 6 }, { t: 40, l: 10, rot: -8 }, { t: 55, l: 65, rot: 4 }, { t: 65, l: 15, rot: 10 }, { t: 78, l: 50, rot: -4 }, { t: 88, l: 20, rot: 8 }, { t: 45, l: 75, rot: -10 }, { t: 5, l: 45, rot: 5 }];
             return (
                 <div className={`transition-all duration-1000 ${isBackground ? 'absolute inset-0 z-0 opacity-40 pointer-events-none' : 'relative w-full flex-grow min-h-[350px] bg-red-900/40 rounded-3xl border-2 border-yellow-500/10 shadow-inner overflow-hidden flex flex-col items-center justify-center'}`}>
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none text-[150px]">🐎</div>
-                    {words.length > 0 ? (
-                        words.slice(0, 9).map((w, idx) => {
-                            const slot = slots[idx % slots.length];
-                            const colors = ['text-yellow-400', 'text-white', 'text-amber-200', 'text-yellow-100'];
-                            return (
-                                <div key={w.id || idx} className={`absolute animate-float font-black text-center drop-shadow-xl transition-all duration-1000`}
-                                    style={{ 
-                                        top: `${slot.t}%`, 
-                                        left: `${slot.l}%`, 
-                                        transform: `rotate(${slot.rot}deg)`, 
-                                        color: colors[idx % colors.length], 
-                                        fontSize: isBackground ? `${Math.max(18, 36 - (w.greeting || '').length * 2)}px` : `${Math.max(22, 44 - (w.greeting || '').length * 2)}px`
-                                    }}>
-                                    <div className="text-shadow-gold">{w.greeting}</div>
-                                    <div className="text-[10px] opacity-60 font-bold mt-1">-{w.name}</div>
-                                </div>
-                            );
-                        })
-                    ) : (
-                        !isBackground && <div className="text-center space-y-4 animate-pulse opacity-30"><Icon name="loader-2" className="w-12 h-12 mx-auto animate-spin" /><p className="italic font-bold">等待英雄登錄中...</p></div>
-                    )}
+                    {words.length > 0 ? words.slice(0, 9).map((w, idx) => {
+                        const slot = slots[idx % slots.length];
+                        return (
+                            <div key={idx} className="absolute animate-float font-black text-center" style={{ top: `${slot.t}%`, left: `${slot.l}%`, transform: `rotate(${slot.rot}deg)`, color: '#f9e498', fontSize: '24px' }}>
+                                <div className="text-shadow-gold">{w.greeting}</div>
+                                <div className="text-[10px] opacity-60 font-bold mt-1">-{w.name}</div>
+                            </div>
+                        );
+                    }) : <div className="text-center opacity-30 italic font-bold">等待英雄登錄中...</div>}
                 </div>
             );
         };
@@ -150,12 +133,10 @@
             const [user, setUser] = useState(null);
             const [gameStep, setGameStep] = useState('register'); 
             const [players, setPlayers] = useState([]);
-            const [gameState, setGameState] = useState({ 
-                countdownStartTime: 0, prizesPool: INITIAL_PRIZES, currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question', lastWinner: null
-            });
+            const [gameState, setGameState] = useState({ currentQuestionIndex: 0, isGameStarted: false, phaseStartTime: 0, viewMode: 'question' });
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
-            const [lastResultCorrect, setLastResultCorrect] = useState(null); // ✨ 新增：鎖定當前題目的結果 ✨
+            const [lastResultCorrect, setLastResultCorrect] = useState(null); 
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
             const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -245,8 +226,13 @@
                 if (currentPhase === 'final' && gameStep === 'quiz') setGameStep('leaderboard');
             }, [currentPhase, gameStep]);
 
+            // ✨ 修改排序邏輯：同分比總耗時 ✨
             const sortedPlayers = useMemo(() => {
-                return [...players].sort((a, b) => (b.score - a.score) || (a.timestamp?.seconds - b.timestamp?.seconds));
+                return [...players].sort((a, b) => {
+                    if (b.score !== a.score) return b.score - a.score;
+                    // 同分比總秒數 (愈小愈前面)
+                    return (a.totalTimeTaken || 0) - (b.totalTimeTaken || 0);
+                });
             }, [players]);
 
             const me = useMemo(() => sortedPlayers.find(p => p.id === user?.uid), [sortedPlayers, user]);
@@ -258,26 +244,33 @@
                 const name = e.target.name.value;
                 const greeting = e.target.greeting.value;
                 await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).set({
-                    name, greeting: greeting.substring(0, 10), score: 0, prize: '', answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    name, greeting: greeting.substring(0, 10), score: 0, totalTimeTaken: 0, prize: '', answers: {}, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
                 setGameStep('sponsors');
             };
 
             const handleConfirmAnswer = async () => {
-                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 8) return;
+                // ✨ 寬限判斷時間：設為 9.5 秒以彌補網路時差 ✨
+                if (tempSelectedOption === null || selectedOption !== null || currentPhase !== 'question' || elapsedSeconds >= 9.5) return;
                 const index = tempSelectedOption;
                 setSelectedOption(index); 
                 
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
                 const isCorrect = Array.isArray(correctRef) ? correctRef.includes(index) : index === correctRef;
                 
-                // ✨ 鎖定本地結果 ✨
+                // ✨ 本地即時鎖定對錯狀態 ✨
                 setLastResultCorrect(isCorrect);
                 
-                const newScore = isCorrect ? (me?.score || 0) + 10 : (me?.score || 0);
+                const playerRef = db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid);
+                const currentData = (await playerRef.get()).data();
                 
-                await db.collection('artifacts').doc(appId).collection('public').doc('data').collection('players').doc(user.uid).update({ 
+                const newScore = isCorrect ? (currentData?.score || 0) + 10 : (currentData?.score || 0);
+                // 累積答題秒數
+                const newTotalTime = (currentData?.totalTimeTaken || 0) + elapsedSeconds;
+                
+                await playerRef.update({ 
                     score: newScore,
+                    totalTimeTaken: newTotalTime,
                     [`answers.${gameState.currentQuestionIndex}`]: index 
                 });
             };
@@ -367,6 +360,7 @@
                                                         </button>
                                                     ))}
                                                 </div>
+                                                
                                                 <div className="h-20 shrink-0 flex items-center justify-center">
                                                     {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8 && (
                                                         <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
@@ -382,7 +376,6 @@
                                                 <div className="bg-white/95 rounded-3xl p-6 border-l-8 border-green-500 shadow-xl text-red-900 shrink-0">
                                                     <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest"><Icon name="check-circle" className="w-4 h-4" /> Correct Answer</div>
                                                     <p className="text-2xl font-black italic">{Array.isArray(QUESTIONS[gameState.currentQuestionIndex].correct) ? "以上皆是！" : QUESTIONS[gameState.currentQuestionIndex].a[QUESTIONS[gameState.currentQuestionIndex].correct]}</p>
-                                                    {/* ✨ 修正：使用鎖定的 lastResultCorrect ✨ */}
                                                     {selectedOption === null ? (
                                                         <div className="mt-3 text-gray-500 font-bold flex items-center gap-1"><Icon name="alert-circle" className="w-5 h-5" /> 未能及時確認答案...</div>
                                                     ) : lastResultCorrect ? (
@@ -391,6 +384,7 @@
                                                         <div className="mt-3 text-red-600 font-bold flex items-center gap-1"><Icon name="x-circle" className="w-5 h-5" /> 答錯了！</div>
                                                     )}
                                                 </div>
+
                                                 <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
                                                     <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜</h3>
                                                     {sortedPlayers.slice(0, 5).map((p, i) => (
@@ -446,6 +440,26 @@
                             </div>
                         )}
                     </div>
+
+                    {globalCelebration && !isAdmin && (
+                        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-500">
+                            <div className="absolute inset-0 bg-black/80 backdrop-blur-lg"></div>
+                            {[...Array(25)].map((_, i) => (
+                                <div key={i} className="confetti" style={{ left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 2}s`, backgroundColor: ['#fbbf24', '#f59e0b', '#d4af37', '#ffffff'][i % 4] }}></div>
+                            ))}
+                            <div className="bg-white rounded-[50px] w-full max-sm:max-w-sm overflow-hidden shadow-[0_0_50px_rgba(212,175,55,0.6)] relative z-10 border-8 border-yellow-500 animate-bounce-short">
+                                <div className="bg-gold-gradient p-10 text-center relative shadow-lg">
+                                    <div className="text-red-700 text-7xl mb-4 drop-shadow-lg animate-bounce">🧧</div>
+                                    <h2 className="text-red-950 font-black text-4xl mb-1 italic tracking-tighter">大獎開出！</h2>
+                                    <p className="text-red-900/60 font-bold uppercase tracking-widest text-xs">Winner Announcement</p>
+                                </div>
+                                <div className="p-10 text-center space-y-8 bg-white">
+                                    <div><p className="text-gray-400 font-bold text-sm italic">恭喜獲獎同仁</p><p className="text-gray-900 font-black text-5xl tracking-tighter drop-shadow-sm">{globalCelebration.name}</p></div>
+                                    <div className="py-8 px-5 bg-red-50 rounded-[40px] border-4 border-red-100 shadow-inner"><p className="text-red-500 font-bold text-xs mb-1 italic tracking-widest uppercase">獲得獎項</p><p className="text-red-800 font-black text-4xl italic tracking-tight underline decoration-yellow-600/30">{globalCelebration.prize}</p></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             );
         };
@@ -569,11 +583,21 @@
                                                 const isCompleted = idx < gameState.currentQuestionIndex;
                                                 const isLive = idx === gameState.currentQuestionIndex;
                                                 const isSelected = selectedQuestionTab === idx;
+                                                
                                                 let tabStyle = "bg-red-950/40 border-yellow-600/20 text-yellow-500/60";
                                                 if (isCompleted) tabStyle = "bg-green-gradient text-white border-white/30 shadow-md";
                                                 else if (isLive) tabStyle = "bg-gold-gradient text-red-950 border-white shadow-[0_0_10px_gold]";
+                                                
                                                 return (
-                                                    <button key={idx} onClick={() => setSelectedQuestionTab(idx)} className={`w-12 h-12 rounded-full shrink-0 font-black transition-all border-2 flex items-center justify-center relative ${tabStyle} ${isSelected ? 'ring-4 ring-yellow-400/50 scale-110 z-10' : 'opacity-80'}`}><span className="text-lg">{idx + 1}</span>{isCompleted && (<div className="absolute -top-1 -right-1 bg-green-950 rounded-full p-0.5 border border-white"><Icon name="check" className="w-2.5 h-2.5 text-white" /></div>)}</button>
+                                                    <button key={idx} onClick={() => setSelectedQuestionTab(idx)} 
+                                                        className={`w-12 h-12 rounded-full shrink-0 font-black transition-all border-2 flex items-center justify-center relative ${tabStyle} ${isSelected ? 'ring-4 ring-yellow-400/50 scale-110 z-10' : 'opacity-80'}`}>
+                                                        <span className="text-lg">{idx + 1}</span>
+                                                        {isCompleted && (
+                                                            <div className="absolute -top-1 -right-1 bg-green-950 rounded-full p-0.5 border border-white">
+                                                                <Icon name="check" className="w-2.5 h-2.5 text-white" />
+                                                            </div>
+                                                        )}
+                                                    </button>
                                                 );
                                             })}
                                         </div>
@@ -588,7 +612,9 @@
                                                             const correctRef = QUESTIONS[selectedQuestionTab].correct;
                                                             const isAnswerCorrect = Array.isArray(correctRef) ? correctRef.includes(i) : correctRef === i;
                                                             return (
-                                                                <div key={i} className={`p-3 rounded-xl text-[11px] font-bold border ${isAnswerCorrect ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60'}`}><span className="opacity-50 mr-1">{String.fromCharCode(65 + i)}.</span> {ans}</div>
+                                                                <div key={i} className={`p-3 rounded-xl text-[11px] font-bold border ${isAnswerCorrect ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-50 border-red-100 opacity-60'}`}>
+                                                                    <span className="opacity-50 mr-1">{String.fromCharCode(65 + i)}.</span> {ans}
+                                                                </div>
                                                             );
                                                         })}
                                                     </div>

@@ -99,7 +99,7 @@
             { q: "3 月輪到哪 2 位同事，分別來清理掃地機器人 & 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
             { q: "公司新購買的微波爐，是哪一個廠牌？", a: ["Panasonic", "SAMPO", "Whirpool", "TOSHIBA"], correct: 2 },
             { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的營食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
-            { q: "以下哪一間是離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
+            { q: "哪一間離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
             { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
 
@@ -186,7 +186,7 @@
                     .onSnapshot(s => {
                         if (s.exists) {
                             const data = s.data();
-                            // ✨ 偵測題號變動時，重設本地狀態並解鎖快照 ✨
+                            // ✨ 偵測題號變動時，優先重置狀態並清空鎖定，防止舊快照殘留 ✨
                             if (data.currentQuestionIndex !== gameState.currentQuestionIndex) {
                                 setSelectedOption(null);
                                 setTempSelectedOption(null);
@@ -197,7 +197,7 @@
                             
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
-                                // ✨ 修改點 3：中獎顯示縮短為 3 秒 ✨
+                                // ✨ 修改點：中獎視窗縮短為 3 秒 ✨
                                 setTimeout(() => setGlobalCelebration(null), 3000);
                             }
                             const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
@@ -226,7 +226,7 @@
                 return 'rank'; 
             }, [elapsedSeconds, gameState.viewMode]);
 
-            // ✨ 修正點 2：當進入戰報階段，立即「鎖定」當前題目的正確資訊快照 ✨
+            // ✨ 修正點 2：當進入戰報階段，立即「鎖定」當前題目的快照，避免跳題閃爍 ✨
             useEffect(() => {
                 if (currentPhase === 'rank' && !lockedResult && gameStep === 'quiz') {
                     const q = QUESTIONS[gameState.currentQuestionIndex];
@@ -240,6 +240,7 @@
 
             useEffect(() => {
                 const isRecent = gameState.countdownStartTime > (Date.now() - 30000);
+                // 只有在 isGameStarted 為 true 時才啟動倒數
                 if (gameState.isGameStarted && gameState.countdownStartTime > 0 && isRecent && gameStep === 'greetings') {
                     const timer = setInterval(() => {
                         const diff = Math.max(0, 5 - Math.floor((Date.now() - gameState.countdownStartTime) / 1000));
@@ -282,7 +283,7 @@
             };
 
             const handleConfirmAnswer = async () => {
-                // 給予時差補償：按鈕尚未消失前點下均有效 (至多 10.5 秒)
+                // ✨ 修正：給予時差緩衝（10.5秒），按下瞬間鎖定本地狀態 ✨
                 if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds > 10.5) return;
                 
                 const currentSec = Math.max(0, Math.min(8.0, elapsedSeconds)); 
@@ -409,7 +410,7 @@
                                                 <div className="text-center pt-4"><div className="text-gold text-5xl font-black mb-2 drop-shadow-lg italic tracking-tighter uppercase">英雄戰報</div></div>
                                                 <div className="bg-white/95 rounded-3xl p-6 border-l-8 border-green-500 shadow-xl text-red-900 shrink-0">
                                                     <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest"><Icon name="check-circle" className="w-4 h-4" /> Correct Answer</div>
-                                                    {/* ✨ 修正：使用本地快照資訊鎖定顯示，不隨全域題號變動閃爍 ✨ */}
+                                                    {/* ✨ 修正點：使用快照資訊鎖定顯示，不隨全域題號變動閃爍 ✨ */}
                                                     <p className="text-2xl font-black italic">{lockedResult?.answerText || "正在結算..."}</p>
                                                     {(!lockedResult?.hasSubmitted) ? (
                                                         <div className="mt-3 text-gray-500 font-bold flex items-center gap-1"><Icon name="alert-circle" className="w-5 h-5" /> 未能及時確認答案...</div>
@@ -419,9 +420,8 @@
                                                         <div className="mt-3 text-red-600 font-bold flex items-center gap-1"><Icon name="x-circle" className="w-5 h-5" /> 答錯了！</div>
                                                     )}
                                                 </div>
-
                                                 <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
-                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜 (耗時)</h3>
+                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜</h3>
                                                     {sortedPlayers.slice(0, 5).map((p, i) => (
                                                         <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
                                                             <div className="flex items-center gap-3">
@@ -470,7 +470,7 @@
                                                             <div>
                                                                 <div className="font-bold text-lg">{p.name}</div>
                                                                 <div className="text-[10px] text-yellow-200/40 italic">"{p.greeting}"</div>
-                                                                {/* ✨ 修改點 4：非本人參賽者也顯示所獲得的獎項 ✨ */}
+                                                                {/* ✨ 修改：其他獲獎者也會顯示獎項 ✨ */}
                                                                 {p.prize && <div className="text-[10px] text-yellow-400 font-black italic mt-1 animate-pulse">🧧 獲得：{p.prize}</div>}
                                                             </div>
                                                         </div>
@@ -750,8 +750,8 @@
                             </div>
                         </div>
 
-                        <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm h-fit">
-                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時英雄榜 (耗時)</span></div>
+                        <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
+                            <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時參賽者排行榜 (耗時)</span></div>
                             <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
                                 {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
                                     <div key={p.id} className={`flex items-center justify-between p-3.5 transition-colors ${p.id === user?.uid ? 'bg-yellow-600/20' : ''}`}>

@@ -99,7 +99,7 @@
             { q: "3 月輪到哪 2 位同事，分別來清理掃地機器人 & 微波爐？", a: ["Patty & Alice", "Patty & Daisy", "昇雯 & Sherry", "Lory & Sherry"], correct: 1 },
             { q: "公司新購買的微波爐，是哪一個廠牌？", a: ["Panasonic", "SAMPO", "Whirpool", "TOSHIBA"], correct: 2 },
             { q: "下列哪一個「不是」公司疑似老鼠出沒的跡象？", a: ["昇雯桌下的南瓜 被咬了一口", "Daisy 桌上被咬破的零食們", "Sherry 垃圾桶的營食袋被翻出", "飲水機旁減少的咖啡濾掛包"], correct: 3 },
-            { q: "哪一間離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
+            { q: "以下哪一間是離公司最遠的飲料店？", a: ["叮哥茶飲", "路易莎", "可不可熟成紅茶", "麻古"], correct: 0 },
             { q: "哪一個是馬年吉祥話？", a: ["金馬報喜", "龍馬精神", "萬馬奔騰", "駿馬迎春"], correct: [0, 1, 2, 3] }
         ];
 
@@ -150,7 +150,7 @@
             const [tempSelectedOption, setTempSelectedOption] = useState(null); 
             const [selectedOption, setSelectedOption] = useState(null); 
             const [lastResultCorrect, setLastResultCorrect] = useState(null); 
-            const [resultViewData, setResultViewData] = useState(null); // ✨ 新增：鎖定戰報畫面資料 ✨
+            const [lockedResult, setLockedResult] = useState(null); // ✨ 修正點 1：鎖定顯示快照，防止洩漏 ✨
             const [isAdmin, setIsAdmin] = useState(false);
             const [localCountdown, setLocalCountdown] = useState(null);
             const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -186,17 +186,18 @@
                     .onSnapshot(s => {
                         if (s.exists) {
                             const data = s.data();
-                            // ✨ 修正點 1：偵測題號變動，立即重置狀態且清空戰報鎖定 ✨
+                            // ✨ 偵測題號變動時，重設本地狀態並解鎖快照 ✨
                             if (data.currentQuestionIndex !== gameState.currentQuestionIndex) {
                                 setSelectedOption(null);
                                 setTempSelectedOption(null);
                                 setLastResultCorrect(null);
-                                setResultViewData(null); 
+                                setLockedResult(null); 
                             }
                             setGameState(data);
                             
                             if (data.lastWinner && data.lastWinner.timestamp > (Date.now() - 5000)) {
                                 setGlobalCelebration(data.lastWinner);
+                                // ✨ 修改點 3：中獎顯示縮短為 3 秒 ✨
                                 setTimeout(() => setGlobalCelebration(null), 3000);
                             }
                             const allowedStepsBeforeStart = ['register', 'sponsors', 'greetings'];
@@ -225,17 +226,17 @@
                 return 'rank'; 
             }, [elapsedSeconds, gameState.viewMode]);
 
-            // ✨ 修正點 2：當進入戰報階段時，立即拍下目前題目的答案快照，防止閃爍 ✨
+            // ✨ 修正點 2：當進入戰報階段，立即「鎖定」當前題目的正確資訊快照 ✨
             useEffect(() => {
-                if (currentPhase === 'rank' && !resultViewData && gameStep === 'quiz') {
+                if (currentPhase === 'rank' && !lockedResult && gameStep === 'quiz') {
                     const q = QUESTIONS[gameState.currentQuestionIndex];
-                    setResultViewData({
+                    setLockedResult({
                         answerText: Array.isArray(q.correct) ? "以上皆是！" : q.a[q.correct],
                         isCorrect: lastResultCorrect,
-                        hasSelected: selectedOption !== null
+                        hasSubmitted: selectedOption !== null
                     });
                 }
-            }, [currentPhase, gameState.currentQuestionIndex, lastResultCorrect, selectedOption, resultViewData, gameStep]);
+            }, [currentPhase, gameState.currentQuestionIndex, lastResultCorrect, selectedOption, lockedResult, gameStep]);
 
             useEffect(() => {
                 const isRecent = gameState.countdownStartTime > (Date.now() - 30000);
@@ -281,13 +282,13 @@
             };
 
             const handleConfirmAnswer = async () => {
-                // ✨ 修正點 3：寬限至 10.5 秒。只要按鈕還沒消失前按下，本地立即鎖定狀態。 ✨
+                // 給予時差補償：按鈕尚未消失前點下均有效 (至多 10.5 秒)
                 if (tempSelectedOption === null || selectedOption !== null || elapsedSeconds > 10.5) return;
                 
                 const currentSec = Math.max(0, Math.min(8.0, elapsedSeconds)); 
                 const index = tempSelectedOption;
                 
-                // 本地即時鎖定，防止 UI 顯示未能及時確認
+                // 本地立即鎖定選擇狀態，減少視覺誤差
                 setSelectedOption(index); 
                 
                 const correctRef = QUESTIONS[gameState.currentQuestionIndex].correct;
@@ -374,7 +375,6 @@
                                 {gameStep === 'quiz' && (
                                     <div className="flex-grow flex flex-col h-full relative">
                                         <WordCloud words={players} isBackground={true} />
-                                        
                                         {currentPhase === 'question' ? (
                                             <div className="flex-grow flex flex-col space-y-4 z-10">
                                                 <div className="flex justify-between items-center bg-red-800/80 p-4 rounded-xl border border-yellow-600/30 font-black shrink-0 mt-2 shadow-2xl relative overflow-hidden">
@@ -395,7 +395,6 @@
                                                         </button>
                                                     ))}
                                                 </div>
-                                                
                                                 <div className="h-20 shrink-0 flex items-center justify-center">
                                                     {tempSelectedOption !== null && selectedOption === null && elapsedSeconds < 8.2 && (
                                                         <button onClick={handleConfirmAnswer} className="w-full py-5 bg-gold-gradient text-red-900 font-black rounded-2xl shadow-[0_10px_20px_rgba(0,0,0,0.4)] text-2xl border-b-4 border-yellow-700 animate-in slide-in-from-bottom-10 transition-all active:scale-95 flex items-center justify-center gap-3">確認送出答案 <Icon name="send" className="w-6 h-6" /></button>
@@ -410,11 +409,11 @@
                                                 <div className="text-center pt-4"><div className="text-gold text-5xl font-black mb-2 drop-shadow-lg italic tracking-tighter uppercase">英雄戰報</div></div>
                                                 <div className="bg-white/95 rounded-3xl p-6 border-l-8 border-green-500 shadow-xl text-red-900 shrink-0">
                                                     <div className="flex items-center gap-2 mb-2 text-green-600 font-bold uppercase text-xs tracking-widest"><Icon name="check-circle" className="w-4 h-4" /> Correct Answer</div>
-                                                    {/* ✨ 修正：使用鎖定的答案文字快照，徹底解決閃爍問題 ✨ */}
-                                                    <p className="text-2xl font-black italic">{resultViewData?.answerText || "結算中..."}</p>
-                                                    {(!resultViewData?.hasSelected) ? (
+                                                    {/* ✨ 修正：使用本地快照資訊鎖定顯示，不隨全域題號變動閃爍 ✨ */}
+                                                    <p className="text-2xl font-black italic">{lockedResult?.answerText || "正在結算..."}</p>
+                                                    {(!lockedResult?.hasSubmitted) ? (
                                                         <div className="mt-3 text-gray-500 font-bold flex items-center gap-1"><Icon name="alert-circle" className="w-5 h-5" /> 未能及時確認答案...</div>
-                                                    ) : resultViewData?.isCorrect ? (
+                                                    ) : lockedResult?.isCorrect ? (
                                                         <div className="mt-3 text-green-600 font-black flex items-center gap-1 animate-bounce"><Icon name="thumbs-up" className="w-5 h-5" /> 答對了！(+10 分)</div>
                                                     ) : (
                                                         <div className="mt-3 text-red-600 font-bold flex items-center gap-1"><Icon name="x-circle" className="w-5 h-5" /> 答錯了！</div>
@@ -422,7 +421,7 @@
                                                 </div>
 
                                                 <div className="bg-red-950/60 rounded-3xl p-6 border-2 border-yellow-500/30 shadow-2xl space-y-3 shrink-0">
-                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時參賽者英雄榜</h3>
+                                                    <h3 className="text-gold font-black italic text-center border-b border-yellow-600/20 pb-2 mb-2 uppercase tracking-widest font-serif">即時英雄榜 (耗時)</h3>
                                                     {sortedPlayers.slice(0, 5).map((p, i) => (
                                                         <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-black/20 border border-white/5">
                                                             <div className="flex items-center gap-3">
@@ -431,7 +430,6 @@
                                                             </div>
                                                             <div className="text-right">
                                                                 <div className="font-black text-gold italic leading-none">{p.score}分</div>
-                                                                {/* ✨ 修正點 4：在 User 端榜單也顯示耗時 ✨ */}
                                                                 <div className="text-[8px] text-white/40 mt-0.5">{p.totalTimeTaken?.toFixed(1)}s</div>
                                                             </div>
                                                         </div>
@@ -472,6 +470,7 @@
                                                             <div>
                                                                 <div className="font-bold text-lg">{p.name}</div>
                                                                 <div className="text-[10px] text-yellow-200/40 italic">"{p.greeting}"</div>
+                                                                {/* ✨ 修改點 4：非本人參賽者也顯示所獲得的獎項 ✨ */}
                                                                 {p.prize && <div className="text-[10px] text-yellow-400 font-black italic mt-1 animate-pulse">🧧 獲得：{p.prize}</div>}
                                                             </div>
                                                         </div>
@@ -751,7 +750,7 @@
                             </div>
                         </div>
 
-                        <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm">
+                        <div className="md:col-span-4 flex flex-col overflow-hidden bg-red-950/40 rounded-[2.5rem] border border-yellow-600/20 shadow-2xl backdrop-blur-sm h-fit">
                             <div className="bg-gold-gradient p-3 font-black text-red-950 text-xs italic uppercase flex items-center gap-2 border-b border-yellow-800/30"><Icon name="trending-up" className="w-4 h-4" /><span>即時英雄榜 (耗時)</span></div>
                             <div className="flex-grow overflow-y-auto no-scrollbar divide-y divide-white/5 bg-black/10">
                                 {sortedPlayers.length > 0 ? sortedPlayers.slice(0, 15).map((p, i) => (
